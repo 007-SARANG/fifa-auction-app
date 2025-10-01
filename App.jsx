@@ -132,12 +132,15 @@ function App() {
   const [auctionRoomId, setAuctionRoomId] = useState(null);
   const [auctionRooms, setAuctionRooms] = useState([]);
   const [newRoomName, setNewRoomName] = useState('');
-  const [initialBudget, setInitialBudget] = useState(200);
+  const [initialBudget, setInitialBudget] = useState(1000);
   
   // New states for logs and team view
   const [activityLogs, setActivityLogs] = useState([]);
   const [showTeamView, setShowTeamView] = useState(false);
   const [showLogsView, setShowLogsView] = useState(false);
+  
+  // Auction phase tracking
+  const [currentPhase, setCurrentPhase] = useState('premium'); // 'premium' (85+), 'regular' (83-85), 'free' (78-82)
 
   // Initialize sample data
   const initializeSampleData = useCallback(async () => {
@@ -184,25 +187,52 @@ function App() {
       if (user) {
         setUser(user);
         
-        // Check if user has a name set
-        const userRef = doc(db, 'users', user.uid);
-        const userDoc = await getDocs(query(collection(db, 'users'), where('__name__', '==', user.uid)));
-        
-        if (userDoc.empty) {
-          // New user - show name input
-          setShowNameInput(true);
-        } else {
-          // Existing user
-          const userData = userDoc.docs[0].data();
-          setCurrentUser({ id: user.uid, ...userData });
-          if (userData.auctionRoomId) {
-            setAuctionRoomId(userData.auctionRoomId);
+        try {
+          // Check if user exists in database
+          const userRef = doc(db, 'users', user.uid);
+          const userSnap = await getDocs(query(collection(db, 'users')));
+          
+          let existingUserData = null;
+          userSnap.forEach((doc) => {
+            if (doc.id === user.uid) {
+              existingUserData = { id: doc.id, ...doc.data() };
+            }
+          });
+          
+          if (!existingUserData) {
+            // New user - show name input
+            console.log('New user detected, showing name input');
+            setShowNameInput(true);
             setShowAuctionMenu(false);
-            await initializeSampleData();
           } else {
-            // Existing user but no active auction room - show auction menu
-            setShowAuctionMenu(true);
+            // Existing user - restore session
+            console.log('Existing user found, restoring session:', existingUserData);
+            setCurrentUser(existingUserData);
+            
+            // Update user online status
+            await updateDoc(userRef, {
+              isOnline: true,
+              lastSeen: Date.now()
+            });
+            
+            if (existingUserData.auctionRoomId) {
+              // User was in an auction room - restore to that room
+              console.log('Restoring user to auction room:', existingUserData.auctionRoomId);
+              setAuctionRoomId(existingUserData.auctionRoomId);
+              setShowAuctionMenu(false);
+              setShowNameInput(false);
+              await initializeSampleData();
+            } else {
+              // User exists but not in any room - show auction menu
+              console.log('User exists but no active room, showing auction menu');
+              setShowAuctionMenu(true);
+              setShowNameInput(false);
+            }
           }
+        } catch (error) {
+          console.error('Error checking user data:', error);
+          // Fallback to name input if there's an error
+          setShowNameInput(true);
         }
       } else {
         // Sign in anonymously
@@ -218,6 +248,48 @@ function App() {
 
     return () => unsubscribe();
   }, []);
+
+  // Handle page unload (when user closes browser/tab)
+  useEffect(() => {
+    const handleBeforeUnload = async () => {
+      if (user && currentUser) {
+        try {
+          const userRef = doc(db, 'users', user.uid);
+          await updateDoc(userRef, {
+            isOnline: false,
+            lastSeen: Date.now()
+          });
+        } catch (error) {
+          console.error('Error updating offline status:', error);
+        }
+      }
+    };
+
+    const handleVisibilityChange = async () => {
+      if (user && currentUser) {
+        try {
+          const userRef = doc(db, 'users', user.uid);
+          await updateDoc(userRef, {
+            isOnline: !document.hidden,
+            lastSeen: Date.now()
+          });
+        } catch (error) {
+          console.error('Error updating visibility status:', error);
+        }
+      }
+    };
+
+    // Add event listeners
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+
+    // Cleanup
+    return () => {
+      window.removeEventListener('beforeunload', handleBeforeUnload);
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+      handleBeforeUnload(); // Set offline when component unmounts
+    };
+  }, [user, currentUser]);
 
   // Real-time listeners
   useEffect(() => {
@@ -249,11 +321,17 @@ function App() {
         });
         setUsers(usersData);
         
-        // Check if user is admin (first to join this room)
+        // Check if user is admin (room creator OR first to join)
         const sortedUsers = usersData.sort((a, b) => a.joinedAt - b.joinedAt);
-        if (sortedUsers.length > 0 && sortedUsers[0].id === user.uid) {
-          setIsAdmin(true);
-        }
+        const isUserAdmin = (auction?.createdBy === user.uid) || 
+                           (sortedUsers.length > 0 && sortedUsers[0].id === user.uid);
+        console.log('Admin check:', {
+          userUid: user.uid,
+          roomCreator: auction?.createdBy,
+          firstJoiner: sortedUsers[0]?.id,
+          isAdmin: isUserAdmin
+        });
+        setIsAdmin(isUserAdmin);
       }
     );
 
@@ -370,6 +448,49 @@ function App() {
     }
   };
 
+  // Auction phase utility functions
+  const getAuctionPhase = (rating) => {
+    if (rating >= 85) return 'premium';
+    if (rating >= 83) return 'regular';
+    return 'free';
+  };
+
+  const getBasePrice = (rating) => {
+    if (rating >= 85) return 50; // 50M for 85+ players
+    if (rating >= 83) return 30; // 30M for 83-85 players
+    return 0; // Free picks for 78-82 players
+  };
+
+  const getPhaseDescription = (phase) => {
+    switch (phase) {
+      case 'premium': return '85+ Premium Players (Base: 50M)';
+      case 'regular': return '83-85 Regular Players (Base: 30M)';
+      case 'free': return '78-82 Free Picks (Base: 0M)';
+      default: return 'Unknown Phase';
+    }
+  };
+
+  const getAvailablePlayersForPhase = async (phase) => {
+    const playersQuery = query(
+      collection(db, 'players'),
+      where('isSold', '==', false)
+    );
+    
+    const playersSnapshot = await getDocs(playersQuery);
+    const availablePlayers = [];
+    
+    playersSnapshot.forEach((doc) => {
+      const playerData = doc.data();
+      const playerPhase = getAuctionPhase(playerData.rating);
+      
+      if (playerPhase === phase && playerData.rating >= 78) {
+        availablePlayers.push({ id: doc.id, ...playerData });
+      }
+    });
+    
+    return availablePlayers;
+  };
+
   // Auction room functions
   const createAuctionRoom = async () => {
     if (!newRoomName.trim()) {
@@ -393,7 +514,8 @@ function App() {
         status: 'waiting',
         timer: 0,
         isComplete: false,
-        initialBudget: initialBudget
+        initialBudget: initialBudget,
+        currentPhase: 'premium' // Start with premium players (85+)
       });
       
       // Update user to join this room
@@ -431,6 +553,28 @@ function App() {
     } catch (error) {
       console.error('Error joining room:', error);
       showError('Failed to join room');
+    }
+  };
+
+  const leaveAuctionRoom = async () => {
+    try {
+      // Clear user's auction room
+      const userRef = doc(db, 'users', user.uid);
+      await updateDoc(userRef, {
+        auctionRoomId: null
+      });
+      
+      // Reset state
+      setAuctionRoomId(null);
+      setAuction(null);
+      setUsers([]);
+      setIsAdmin(false);
+      setShowAuctionMenu(true);
+      
+      showSuccess('Left auction room');
+    } catch (error) {
+      console.error('Error leaving room:', error);
+      showError('Failed to leave room');
     }
   };
 
@@ -486,55 +630,84 @@ function App() {
         return;
       }
       
-      // Get random unsold player (simplified query to avoid index requirement)
-      const playersQuery = query(
-        collection(db, 'players'),
-        where('isSold', '==', false)
-      );
+      // Get current phase from auction data
+      let currentAuctionPhase = auction?.currentPhase || 'premium';
       
-      const playersSnapshot = await getDocs(playersQuery);
+      // Try to get players for current phase
+      let availablePlayers = await getAvailablePlayersForPhase(currentAuctionPhase);
       
-      if (playersSnapshot.empty) {
-        showError('No more players available for auction!');
-        return;
-      }
-      
-      const availablePlayers = [];
-      playersSnapshot.forEach((doc) => {
-        const playerData = doc.data();
-        // Filter by rating in JavaScript to avoid composite index requirement
-        if (playerData.rating >= 78) {
-          availablePlayers.push({ id: doc.id, ...playerData });
-        }
-      });
-      
+      // If no players in current phase, move to next phase
       if (availablePlayers.length === 0) {
-        showError('No more players with rating 78+ available for auction!');
-        return;
+        if (currentAuctionPhase === 'premium') {
+          currentAuctionPhase = 'regular';
+          await addActivityLog(
+            'phase_change',
+            'Moving to Regular Players phase (83-85 rating, Base: 30M)'
+          );
+        } else if (currentAuctionPhase === 'regular') {
+          currentAuctionPhase = 'free';
+          await addActivityLog(
+            'phase_change',
+            'Moving to Free Picks phase (78-82 rating, Base: 0M)'
+          );
+        } else {
+          // No more players available
+          const auctionRef = doc(db, 'auctions', auctionRoomId);
+          await updateDoc(auctionRef, {
+            status: 'complete',
+            isComplete: true
+          });
+          showSuccess('Auction complete! No more players available!');
+          return;
+        }
+        
+        // Update phase in auction data
+        const auctionRef = doc(db, 'auctions', auctionRoomId);
+        await updateDoc(auctionRef, {
+          currentPhase: currentAuctionPhase
+        });
+        
+        // Get players for new phase
+        availablePlayers = await getAvailablePlayersForPhase(currentAuctionPhase);
+        
+        if (availablePlayers.length === 0) {
+          showError('No more players available for auction!');
+          return;
+        }
       }
       
+      // Select random player from available players in current phase
       const randomPlayer = availablePlayers[Math.floor(Math.random() * availablePlayers.length)];
+      const basePrice = getBasePrice(randomPlayer.rating);
       
       // Update auction state
       const auctionRef = doc(db, 'auctions', auctionRoomId);
       await updateDoc(auctionRef, {
         currentPlayer: randomPlayer,
-        currentBid: 0,
-        highestBidder: null,
+        currentBid: basePrice,
+        basePrice: basePrice,
+        highestBidder: basePrice === 0 ? null : 'system', // System holds base price
         bidders: [],
         foldedUsers: [],
         status: 'bidding',
-        timer: 20
+        timer: 20,
+        currentPhase: currentAuctionPhase
       });
       
       // Add activity log for auction start
+      const phaseInfo = getPhaseDescription(currentAuctionPhase);
       await addActivityLog(
         'auction_start',
-        `Auction started for ${randomPlayer.name} (${randomPlayer.rating} rated)`,
-        randomPlayer.name
+        `Auction started for ${randomPlayer.name} (${randomPlayer.rating} rated) - ${phaseInfo}`,
+        randomPlayer.name,
+        basePrice
       );
       
-      showSuccess(`Auction started for ${randomPlayer.name}!`);
+      if (basePrice > 0) {
+        showSuccess(`Auction started for ${randomPlayer.name}! Base price: ${basePrice}M`);
+      } else {
+        showSuccess(`Free pick available: ${randomPlayer.name}! First bid wins!`);
+      }
     } catch (error) {
       console.error('Error starting auction:', error);
       showError('Failed to start auction');
@@ -546,9 +719,15 @@ function App() {
       clearMessages();
       
       const bid = parseInt(bidAmount);
+      const basePrice = auction.basePrice || 0;
       
       if (!bid || bid <= 0) {
         showError('Please enter a valid bid amount');
+        return;
+      }
+      
+      if (bid < basePrice) {
+        showError(`Bid must be at least ${basePrice}M (base price)`);
         return;
       }
       
@@ -805,7 +984,7 @@ function App() {
           {/* Create New Room */}
           <div className="bg-gray-800 rounded-lg p-6 mb-6">
             <h2 className="text-xl font-bold text-white mb-4">Create New Auction</h2>
-            <p className="text-gray-400 text-sm mb-4">Set the initial budget that all players will start with</p>
+            <p className="text-gray-400 text-sm mb-4">Set the initial budget that all players will start with. Default: 1000M (1 Billion)</p>
             <div className="space-y-4">
               <input
                 type="text"
@@ -820,11 +999,11 @@ function App() {
                 <input
                   type="number"
                   value={initialBudget}
-                  onChange={(e) => setInitialBudget(Math.max(50, parseInt(e.target.value) || 200))}
-                  min="50"
-                  max="1000"
+                  onChange={(e) => setInitialBudget(Math.max(100, parseInt(e.target.value) || 1000))}
+                  min="100"
+                  max="5000"
                   className="flex-1 bg-gray-700 text-white p-3 rounded-lg border border-gray-600 focus:border-green-400 focus:outline-none"
-                  placeholder="200"
+                  placeholder="1000"
                 />
                 <span className="text-gray-400 text-sm">million</span>
               </div>
@@ -884,10 +1063,24 @@ function App() {
     );
   }
 
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gray-900 flex items-center justify-center">
+        <div className="text-center">
+          <div className="text-white text-xl mb-4">Loading FIFA Auction...</div>
+          <div className="text-gray-400">Checking for existing session...</div>
+        </div>
+      </div>
+    );
+  }
+
   if (!currentUser) {
     return (
       <div className="min-h-screen bg-gray-900 flex items-center justify-center">
-        <div className="text-white text-xl">Setting up...</div>
+        <div className="text-center">
+          <div className="text-white text-xl mb-4">Setting up your account...</div>
+          <div className="text-gray-400">Almost ready!</div>
+        </div>
       </div>
     );
   }
@@ -914,8 +1107,17 @@ function App() {
             >
               Activity Logs
             </button>
+            <button
+              onClick={leaveAuctionRoom}
+              className="bg-red-600 hover:bg-red-700 px-4 py-2 rounded-lg text-white text-sm font-medium transition-colors"
+            >
+              Leave Room
+            </button>
             <div className="text-sm text-right">
-              <div className="text-gray-300">{currentUser?.name}</div>
+              <div className="text-gray-300">
+                {currentUser?.name}
+                {isAdmin && <span className="ml-2 px-2 py-1 bg-yellow-600 text-black text-xs rounded font-bold">HOST</span>}
+              </div>
               <div className="text-green-400 font-mono">{currentUser?.budget || 0}M</div>
             </div>
           </div>
@@ -957,6 +1159,25 @@ function App() {
                     <h2 className="text-3xl font-bold text-green-400 mb-2">
                       {auction.currentPlayer.name}
                     </h2>
+                    
+                    {/* Phase and Base Price Information */}
+                    <div className="mb-4 p-3 bg-gray-700 rounded-lg">
+                      <div className="flex justify-between items-center">
+                        <span className="text-yellow-400 font-bold">
+                          {getPhaseDescription(auction.currentPhase || 'premium')}
+                        </span>
+                        {auction.basePrice > 0 && (
+                          <span className="text-red-400 font-bold">
+                            Base Price: {auction.basePrice}M
+                          </span>
+                        )}
+                        {auction.basePrice === 0 && (
+                          <span className="text-green-400 font-bold">
+                            FREE PICK!
+                          </span>
+                        )}
+                      </div>
+                    </div>
                     
                     <div className="grid grid-cols-2 gap-4 mb-4">
                       <div>
@@ -1022,15 +1243,15 @@ function App() {
                         type="number"
                         value={bidAmount}
                         onChange={(e) => setBidAmount(e.target.value)}
-                        placeholder="Enter bid amount"
+                        placeholder={`Min: ${Math.max(auction.basePrice || 0, auction.currentBid + 1)}M`}
                         className="flex-1 bg-gray-600 text-white p-3 rounded-lg border border-gray-500 focus:border-green-400 focus:outline-none"
-                        min={auction.currentBid + 1}
+                        min={Math.max(auction.basePrice || 0, auction.currentBid + 1)}
                         max={currentUser.budget}
                       />
                       
                       <button
                         onClick={placeBid}
-                        disabled={!bidAmount || parseInt(bidAmount) <= auction.currentBid || parseInt(bidAmount) > currentUser.budget}
+                        disabled={!bidAmount || parseInt(bidAmount) < Math.max(auction.basePrice || 0, auction.currentBid + 1) || parseInt(bidAmount) > currentUser.budget}
                         className="bg-green-600 hover:bg-green-700 disabled:bg-gray-600 disabled:cursor-not-allowed px-6 py-3 rounded-lg font-bold transition-colors"
                       >
                         Place Bid

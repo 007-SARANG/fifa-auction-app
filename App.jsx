@@ -132,6 +132,12 @@ function App() {
   const [auctionRoomId, setAuctionRoomId] = useState(null);
   const [auctionRooms, setAuctionRooms] = useState([]);
   const [newRoomName, setNewRoomName] = useState('');
+  const [initialBudget, setInitialBudget] = useState(200);
+  
+  // New states for logs and team view
+  const [activityLogs, setActivityLogs] = useState([]);
+  const [showTeamView, setShowTeamView] = useState(false);
+  const [showLogsView, setShowLogsView] = useState(false);
 
   // Initialize sample data
   const initializeSampleData = useCallback(async () => {
@@ -193,6 +199,9 @@ function App() {
             setAuctionRoomId(userData.auctionRoomId);
             setShowAuctionMenu(false);
             await initializeSampleData();
+          } else {
+            // Existing user but no active auction room - show auction menu
+            setShowAuctionMenu(true);
           }
         }
       } else {
@@ -248,10 +257,28 @@ function App() {
       }
     );
 
+    // Listen to activity logs for this auction room
+    const unsubscribeLogs = onSnapshot(
+      query(
+        collection(db, 'activityLogs'), 
+        where('auctionRoomId', '==', auctionRoomId),
+        orderBy('timestamp', 'desc'),
+        limit(50)
+      ),
+      (snapshot) => {
+        const logsData = [];
+        snapshot.forEach((doc) => {
+          logsData.push({ id: doc.id, ...doc.data() });
+        });
+        setActivityLogs(logsData);
+      }
+    );
+
     return () => {
       unsubscribeUser();
       unsubscribeAuction();
       unsubscribeUsers();
+      unsubscribeLogs();
     };
   }, [user, auctionRoomId]);
 
@@ -285,28 +312,61 @@ function App() {
     
     try {
       const userRef = doc(db, 'users', user.uid);
-      await setDoc(userRef, {
-        name: userName.trim(),
-        budget: 200,
-        team: [],
-        isOnline: true,
-        joinedAt: Date.now()
-      });
       
-      setCurrentUser({
-        id: user.uid,
-        name: userName.trim(),
-        budget: 200,
-        team: [],
-        isOnline: true,
-        joinedAt: Date.now()
-      });
+      if (currentUser) {
+        // Updating existing user's name
+        await updateDoc(userRef, {
+          name: userName.trim()
+        });
+        
+        setCurrentUser({
+          ...currentUser,
+          name: userName.trim()
+        });
+      } else {
+        // New user
+        await setDoc(userRef, {
+          name: userName.trim(),
+          budget: initialBudget,
+          team: [],
+          isOnline: true,
+          joinedAt: Date.now()
+        });
+        
+        setCurrentUser({
+          id: user.uid,
+          name: userName.trim(),
+          budget: initialBudget,
+          team: [],
+          isOnline: true,
+          joinedAt: Date.now()
+        });
+      }
       
       setShowNameInput(false);
       setShowAuctionMenu(true);
+      showSuccess(`Name ${currentUser ? 'updated' : 'saved'} successfully!`);
     } catch (error) {
       console.error('Error saving user name:', error);
       showError('Failed to save name');
+    }
+  };
+
+  // Utility function to add activity logs
+  const addActivityLog = async (type, message, playerName = null, amount = null, userId = null, userName = null) => {
+    try {
+      await addDoc(collection(db, 'activityLogs'), {
+        type, // 'bid', 'purchase', 'auction_start', 'auction_end', 'user_join'
+        message,
+        playerName,
+        amount,
+        userId,
+        userName,
+        auctionRoomId,
+        timestamp: Date.now()
+      });
+    } catch (error) {
+      console.error('Error adding activity log:', error);
     }
   };
 
@@ -332,7 +392,8 @@ function App() {
         foldedUsers: [],
         status: 'waiting',
         timer: 0,
-        isComplete: false
+        isComplete: false,
+        initialBudget: initialBudget
       });
       
       // Update user to join this room
@@ -353,19 +414,20 @@ function App() {
     }
   };
 
-  const joinAuctionRoom = async (roomId) => {
+  const joinAuctionRoom = async (room) => {
     try {
-      // Update user to join this room
+      // Update user budget to match room's initial budget
       const userRef = doc(db, 'users', user.uid);
       await updateDoc(userRef, {
-        auctionRoomId: roomId
+        auctionRoomId: room.id,
+        budget: room.initialBudget || 200
       });
       
-      setAuctionRoomId(roomId);
+      setAuctionRoomId(room.id);
       setShowAuctionMenu(false);
       await initializeSampleData();
       
-      showSuccess('Joined auction room!');
+      showSuccess(`Joined auction room: ${room.roomName}!`);
     } catch (error) {
       console.error('Error joining room:', error);
       showError('Failed to join room');
@@ -424,11 +486,10 @@ function App() {
         return;
       }
       
-      // Get random unsold player
+      // Get random unsold player (simplified query to avoid index requirement)
       const playersQuery = query(
         collection(db, 'players'),
-        where('isSold', '==', false),
-        where('rating', '>=', 78)
+        where('isSold', '==', false)
       );
       
       const playersSnapshot = await getDocs(playersQuery);
@@ -440,8 +501,17 @@ function App() {
       
       const availablePlayers = [];
       playersSnapshot.forEach((doc) => {
-        availablePlayers.push({ id: doc.id, ...doc.data() });
+        const playerData = doc.data();
+        // Filter by rating in JavaScript to avoid composite index requirement
+        if (playerData.rating >= 78) {
+          availablePlayers.push({ id: doc.id, ...playerData });
+        }
       });
+      
+      if (availablePlayers.length === 0) {
+        showError('No more players with rating 78+ available for auction!');
+        return;
+      }
       
       const randomPlayer = availablePlayers[Math.floor(Math.random() * availablePlayers.length)];
       
@@ -456,6 +526,13 @@ function App() {
         status: 'bidding',
         timer: 20
       });
+      
+      // Add activity log for auction start
+      await addActivityLog(
+        'auction_start',
+        `Auction started for ${randomPlayer.name} (${randomPlayer.rating} rated)`,
+        randomPlayer.name
+      );
       
       showSuccess(`Auction started for ${randomPlayer.name}!`);
     } catch (error) {
@@ -490,31 +567,26 @@ function App() {
         return;
       }
       
-      // Use transaction to ensure consistency
-      await runTransaction(db, async (transaction) => {
-        const auctionRef = doc(db, 'auctions', auctionRoomId);
-        const auctionDoc = await transaction.get(auctionRef);
-        
-        if (!auctionDoc.exists()) {
-          throw new Error('Auction not found');
-        }
-        
-        const currentAuction = auctionDoc.data();
-        
-        if (bid <= currentAuction.currentBid) {
-          throw new Error('Bid must be higher than current bid');
-        }
-        
-        // Update auction with new bid
-        const newBidders = [...new Set([...currentAuction.bidders, user.uid])];
-        
-        transaction.update(auctionRef, {
-          currentBid: bid,
-          highestBidder: user.uid,
-          bidders: newBidders,
-          timer: 15 // Reset timer to 15 seconds
-        });
+      // Use simpler update instead of transaction to avoid conflicts
+      const auctionRef = doc(db, 'auctions', auctionRoomId);
+      const newBidders = [...new Set([...auction.bidders, user.uid])];
+      
+      await updateDoc(auctionRef, {
+        currentBid: bid,
+        highestBidder: user.uid,
+        bidders: newBidders,
+        timer: 15 // Reset timer to 15 seconds
       });
+      
+      // Add activity log for the bid
+      await addActivityLog(
+        'bid',
+        `${currentUser.name} bid ${bid}M on ${auction.currentPlayer.name}`,
+        auction.currentPlayer.name,
+        bid,
+        user.uid,
+        currentUser.name
+      );
       
       setBidAmount('');
       showSuccess(`Bid placed: ${bid}M`);
@@ -589,6 +661,17 @@ function App() {
         });
         
         const winnerName = users.find(u => u.id === auction.highestBidder)?.name || 'Unknown';
+        
+        // Add activity log for the purchase
+        await addActivityLog(
+          'purchase',
+          `${winnerName} bought ${auction.currentPlayer.name} for ${auction.currentBid}M`,
+          auction.currentPlayer.name,
+          auction.currentBid,
+          auction.highestBidder,
+          winnerName
+        );
+        
         showSuccess(`${auction.currentPlayer.name} sold to ${winnerName} for ${auction.currentBid}M!`);
         
         // Check if auction should continue
@@ -605,6 +688,13 @@ function App() {
           status: 'unsold',
           timer: 0
         });
+        
+        // Add activity log for unsold player
+        await addActivityLog(
+          'auction_end',
+          `${auction.currentPlayer.name} went unsold`,
+          auction.currentPlayer.name
+        );
         
         showSuccess(`${auction.currentPlayer.name} went unsold!`);
       }
@@ -635,8 +725,12 @@ function App() {
     return (
       <div className="min-h-screen bg-gray-900 flex items-center justify-center">
         <div className="bg-gray-800 p-8 rounded-lg shadow-lg max-w-md w-full mx-4">
-          <h2 className="text-2xl font-bold text-green-400 mb-6 text-center">Welcome to FIFA 23 Auction!</h2>
-          <p className="text-gray-300 mb-4 text-center">Enter your name to get started:</p>
+          <h2 className="text-2xl font-bold text-green-400 mb-6 text-center">
+            {currentUser ? 'Change Your Name' : 'Welcome to FIFA 23 Auction!'}
+          </h2>
+          <p className="text-gray-300 mb-4 text-center">
+            {currentUser ? 'Enter your new name:' : 'Enter your name to get started:'}
+          </p>
           
           <input
             type="text"
@@ -647,17 +741,36 @@ function App() {
             onKeyPress={(e) => e.key === 'Enter' && submitUserName()}
           />
           
-          <button
-            onClick={submitUserName}
-            disabled={!userName.trim()}
-            className="w-full bg-green-600 hover:bg-green-700 disabled:bg-gray-600 disabled:cursor-not-allowed py-3 rounded-lg font-bold transition-colors"
-          >
-            Continue
-          </button>
+          <div className="flex gap-3">
+            {currentUser && (
+              <button
+                onClick={() => {
+                  setShowNameInput(false);
+                  setShowAuctionMenu(true);
+                  setUserName('');
+                }}
+                className="flex-1 bg-gray-600 hover:bg-gray-700 py-3 rounded-lg font-bold transition-colors"
+              >
+                Cancel
+              </button>
+            )}
+            <button
+              onClick={submitUserName}
+              disabled={!userName.trim()}
+              className={`${currentUser ? 'flex-1' : 'w-full'} bg-green-600 hover:bg-green-700 disabled:bg-gray-600 disabled:cursor-not-allowed py-3 rounded-lg font-bold transition-colors`}
+            >
+              {currentUser ? 'Update Name' : 'Continue'}
+            </button>
+          </div>
           
           {error && (
             <div className="mt-4 p-3 bg-red-600 text-white rounded-lg text-center">
               {error}
+            </div>
+          )}
+          {success && (
+            <div className="mt-4 p-3 bg-green-600 text-white rounded-lg text-center">
+              {success}
             </div>
           )}
         </div>
@@ -670,9 +783,21 @@ function App() {
     return (
       <div className="min-h-screen bg-gray-900">
         <header className="bg-gray-800 p-4 shadow-lg">
-          <div className="container mx-auto">
-            <h1 className="text-2xl font-bold text-green-400">FIFA 23 Friends Auction</h1>
-            <p className="text-gray-300">Welcome, {currentUser?.name}!</p>
+          <div className="container mx-auto flex justify-between items-center">
+            <div>
+              <h1 className="text-2xl font-bold text-green-400">FIFA 23 Friends Auction</h1>
+              <p className="text-gray-300">Welcome, {currentUser?.name}!</p>
+            </div>
+            <button
+              onClick={() => {
+                setShowAuctionMenu(false);
+                setShowNameInput(true);
+                setUserName(currentUser?.name || '');
+              }}
+              className="bg-gray-700 hover:bg-gray-600 px-4 py-2 rounded-lg text-white text-sm transition-colors"
+            >
+              Change Name
+            </button>
           </div>
         </header>
 
@@ -680,19 +805,33 @@ function App() {
           {/* Create New Room */}
           <div className="bg-gray-800 rounded-lg p-6 mb-6">
             <h2 className="text-xl font-bold text-white mb-4">Create New Auction</h2>
-            <div className="flex gap-4">
+            <p className="text-gray-400 text-sm mb-4">Set the initial budget that all players will start with</p>
+            <div className="space-y-4">
               <input
                 type="text"
                 value={newRoomName}
                 onChange={(e) => setNewRoomName(e.target.value)}
                 placeholder="Auction room name"
-                className="flex-1 bg-gray-700 text-white p-3 rounded-lg border border-gray-600 focus:border-green-400 focus:outline-none"
+                className="w-full bg-gray-700 text-white p-3 rounded-lg border border-gray-600 focus:border-green-400 focus:outline-none"
                 onKeyPress={(e) => e.key === 'Enter' && createAuctionRoom()}
               />
+              <div className="flex gap-4 items-center">
+                <label className="text-white font-medium whitespace-nowrap">Initial Budget:</label>
+                <input
+                  type="number"
+                  value={initialBudget}
+                  onChange={(e) => setInitialBudget(Math.max(50, parseInt(e.target.value) || 200))}
+                  min="50"
+                  max="1000"
+                  className="flex-1 bg-gray-700 text-white p-3 rounded-lg border border-gray-600 focus:border-green-400 focus:outline-none"
+                  placeholder="200"
+                />
+                <span className="text-gray-400 text-sm">million</span>
+              </div>
               <button
                 onClick={createAuctionRoom}
                 disabled={!newRoomName.trim()}
-                className="bg-green-600 hover:bg-green-700 disabled:bg-gray-600 disabled:cursor-not-allowed px-6 py-3 rounded-lg font-bold transition-colors"
+                className="w-full bg-green-600 hover:bg-green-700 disabled:bg-gray-600 disabled:cursor-not-allowed py-3 rounded-lg font-bold transition-colors"
               >
                 Create Room
               </button>
@@ -711,9 +850,12 @@ function App() {
                       <p className="text-gray-300 text-sm">
                         Created by: {room.createdBy} | Status: {room.status || 'waiting'}
                       </p>
+                      <p className="text-green-400 text-sm font-medium">
+                        Budget: {room.initialBudget || 200} million each
+                      </p>
                     </div>
                     <button
-                      onClick={() => joinAuctionRoom(room.id)}
+                      onClick={() => joinAuctionRoom(room)}
                       className="bg-blue-600 hover:bg-blue-700 px-4 py-2 rounded-lg font-bold transition-colors"
                     >
                       Join
@@ -759,14 +901,22 @@ function App() {
             <h1 className="text-2xl font-bold text-green-400">FIFA 23 Friends Auction</h1>
             <p className="text-gray-300 text-sm">{auction?.roomName || 'Auction Room'}</p>
           </div>
-          <div className="text-sm text-right">
-            <div className="text-gray-300">Players: {currentUser?.name}</div>
-            <div className="text-green-400 font-mono">ID: {user.uid.slice(-6)}</div>
-            <div className="text-xs text-gray-400 mt-1">
-              Database: {SAMPLE_PLAYERS.length} players (78+ rating)
-            </div>
-            <div className="text-xs text-gray-400">
-              Progress: Min {Math.min(...(users.map(u => u.team?.length || 0).length > 0 ? users.map(u => u.team?.length || 0) : [0]))} / 11 players per team
+          <div className="flex items-center gap-3">
+            <button
+              onClick={() => setShowTeamView(true)}
+              className="bg-blue-600 hover:bg-blue-700 px-4 py-2 rounded-lg text-white text-sm font-medium transition-colors"
+            >
+              My Team ({currentUser?.team?.length || 0}/11)
+            </button>
+            <button
+              onClick={() => setShowLogsView(true)}
+              className="bg-purple-600 hover:bg-purple-700 px-4 py-2 rounded-lg text-white text-sm font-medium transition-colors"
+            >
+              Activity Logs
+            </button>
+            <div className="text-sm text-right">
+              <div className="text-gray-300">{currentUser?.name}</div>
+              <div className="text-green-400 font-mono">{currentUser?.budget || 0}M</div>
             </div>
           </div>
         </div>
@@ -978,6 +1128,105 @@ function App() {
           </div>
         </div>
       </div>
+
+      {/* Team View Modal */}
+      {showTeamView && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+          <div className="bg-gray-800 rounded-lg max-w-4xl w-full max-h-[80vh] overflow-y-auto">
+            <div className="flex justify-between items-center p-6 border-b border-gray-700">
+              <h2 className="text-2xl font-bold text-green-400">My Team ({currentUser?.team?.length || 0}/11)</h2>
+              <button
+                onClick={() => setShowTeamView(false)}
+                className="text-gray-400 hover:text-white text-2xl"
+              >
+                ×
+              </button>
+            </div>
+            
+            <div className="p-6">
+              <div className="mb-4">
+                <p className="text-gray-300">Budget Remaining: <span className="text-green-400 font-bold">{currentUser?.budget || 0}M</span></p>
+                <p className="text-gray-300">Total Spent: <span className="text-red-400 font-bold">{(initialBudget - (currentUser?.budget || 0))}M</span></p>
+              </div>
+              
+              {currentUser?.team && currentUser.team.length > 0 ? (
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                  {currentUser.team.map((player, index) => (
+                    <div key={index} className="bg-gray-700 rounded-lg p-4">
+                      <img 
+                        src={player.imageUrl} 
+                        alt={player.name}
+                        className="w-full h-32 object-cover rounded-lg mb-3"
+                        onError={(e) => {
+                          e.target.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(player.name)}&size=200&background=1f2937&color=ffffff&format=png&bold=true`;
+                        }}
+                      />
+                      <h3 className="font-bold text-white text-sm">{player.name}</h3>
+                      <p className="text-gray-300 text-xs">{player.club}</p>
+                      <p className="text-green-400 text-sm">Rating: {player.rating}</p>
+                      <p className="text-blue-400 text-xs">{player.position}</p>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="text-center py-8">
+                  <p className="text-gray-400">No players in your team yet</p>
+                  <p className="text-gray-500 text-sm">Start bidding to build your team!</p>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Activity Logs Modal */}
+      {showLogsView && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+          <div className="bg-gray-800 rounded-lg max-w-4xl w-full max-h-[80vh] overflow-y-auto">
+            <div className="flex justify-between items-center p-6 border-b border-gray-700">
+              <h2 className="text-2xl font-bold text-purple-400">Activity Logs</h2>
+              <button
+                onClick={() => setShowLogsView(false)}
+                className="text-gray-400 hover:text-white text-2xl"
+              >
+                ×
+              </button>
+            </div>
+            
+            <div className="p-6">
+              {activityLogs && activityLogs.length > 0 ? (
+                <div className="space-y-3">
+                  {activityLogs.map((log, index) => (
+                    <div key={log.id || index} className={`p-3 rounded-lg ${
+                      log.type === 'purchase' ? 'bg-green-900 border-l-4 border-green-500' :
+                      log.type === 'bid' ? 'bg-blue-900 border-l-4 border-blue-500' :
+                      log.type === 'auction_start' ? 'bg-yellow-900 border-l-4 border-yellow-500' :
+                      'bg-gray-700 border-l-4 border-gray-500'
+                    }`}>
+                      <div className="flex justify-between items-start">
+                        <div>
+                          <p className="text-white text-sm">{log.message}</p>
+                          {log.amount && (
+                            <p className="text-green-400 text-xs font-mono">{log.amount}M</p>
+                          )}
+                        </div>
+                        <span className="text-gray-400 text-xs">
+                          {new Date(log.timestamp).toLocaleTimeString()}
+                        </span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="text-center py-8">
+                  <p className="text-gray-400">No activity logs yet</p>
+                  <p className="text-gray-500 text-sm">Auction activity will appear here</p>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

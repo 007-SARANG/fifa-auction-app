@@ -1,0 +1,27 @@
+// Firestore Security Rules for FIFA Auction App
+// Copy these rules to your Firebase Console > Firestore Database > Rules
+
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Users collection - users can read all and write only their own
+    match /users/{userId} {
+      allow read: if true;
+      allow write: if request.auth != null && request.auth.uid == userId;
+    }
+    
+    // Auction collection - everyone can read, authenticated users can write
+    match /auction/{document} {
+      allow read: if true;
+      allow write: if request.auth != null;
+    }
+    
+    // Players collection - everyone can read, authenticated users can update isSold field
+    match /players/{playerId} {
+      allow read: if true;
+      allow update: if request.auth != null 
+        && request.writeFields.hasOnly(['isSold'])
+        && request.resource.data.isSold is bool;
+    }
+  }
+}

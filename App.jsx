@@ -209,11 +209,8 @@ function App() {
             console.log('Existing user found, restoring session:', existingUserData);
             setCurrentUser(existingUserData);
             
-            // Update user online status
-            await updateDoc(userRef, {
-              isOnline: true,
-              lastSeen: Date.now()
-            });
+            // Don't update online status frequently to save quota
+            // await updateDoc(userRef, { isOnline: true, lastSeen: Date.now() });
             
             if (existingUserData.auctionRoomId) {
               // User was in an auction room - restore to that room
@@ -265,28 +262,12 @@ function App() {
       }
     };
 
-    const handleVisibilityChange = async () => {
-      if (user && currentUser) {
-        try {
-          const userRef = doc(db, 'users', user.uid);
-          await updateDoc(userRef, {
-            isOnline: !document.hidden,
-            lastSeen: Date.now()
-          });
-        } catch (error) {
-          console.error('Error updating visibility status:', error);
-        }
-      }
-    };
-
-    // Add event listeners
+    // Only add beforeunload listener, remove visibility change to reduce writes
     window.addEventListener('beforeunload', handleBeforeUnload);
-    document.addEventListener('visibilitychange', handleVisibilityChange);
 
     // Cleanup
     return () => {
       window.removeEventListener('beforeunload', handleBeforeUnload);
-      document.removeEventListener('visibilitychange', handleVisibilityChange);
       handleBeforeUnload(); // Set offline when component unmounts
     };
   }, [user, currentUser]);
@@ -335,13 +316,13 @@ function App() {
       }
     );
 
-    // Listen to activity logs for this auction room
+    // Listen to activity logs for this auction room (reduced frequency)
     const unsubscribeLogs = onSnapshot(
       query(
         collection(db, 'activityLogs'), 
         where('auctionRoomId', '==', auctionRoomId),
         orderBy('timestamp', 'desc'),
-        limit(50)
+        limit(20) // Reduced from 50 to 20
       ),
       (snapshot) => {
         const logsData = [];
@@ -349,6 +330,10 @@ function App() {
           logsData.push({ id: doc.id, ...doc.data() });
         });
         setActivityLogs(logsData);
+      },
+      (error) => {
+        console.error('Logs listener error:', error);
+        // Don't crash the app if logs fail
       }
     );
 
@@ -430,11 +415,17 @@ function App() {
     }
   };
 
-  // Utility function to add activity logs
+  // Utility function to add activity logs (with throttling)
   const addActivityLog = async (type, message, playerName = null, amount = null, userId = null, userName = null) => {
+    // Only log important events to reduce writes
+    const importantEvents = ['purchase', 'auction_start', 'phase_change'];
+    if (!importantEvents.includes(type)) {
+      return; // Skip non-important logs
+    }
+    
     try {
       await addDoc(collection(db, 'activityLogs'), {
-        type, // 'bid', 'purchase', 'auction_start', 'auction_end', 'user_join'
+        type,
         message,
         playerName,
         amount,
@@ -445,6 +436,7 @@ function App() {
       });
     } catch (error) {
       console.error('Error adding activity log:', error);
+      // Don't throw error, just log it
     }
   };
 
@@ -757,15 +749,8 @@ function App() {
         timer: 15 // Reset timer to 15 seconds
       });
       
-      // Add activity log for the bid
-      await addActivityLog(
-        'bid',
-        `${currentUser.name} bid ${bid}M on ${auction.currentPlayer.name}`,
-        auction.currentPlayer.name,
-        bid,
-        user.uid,
-        currentUser.name
-      );
+      // Remove bid logging to reduce Firebase writes
+      // await addActivityLog(...)
       
       setBidAmount('');
       showSuccess(`Bid placed: ${bid}M`);

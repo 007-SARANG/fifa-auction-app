@@ -21,8 +21,11 @@ Thumbs.db
 *.log
 *.tmp
 
-# CSV data (large file)
+# CSV data (large files - don't push to GitHub)
 fifa_2023.csv
+male_players.csv
+CLEAN_FIFA23_official_data.csv
+*.csv
 
 # Old/backup files
 App-old.jsx

@@ -13,7 +13,9 @@ import {
   runTransaction,
   setDoc,
   orderBy,
-  limit 
+  limit,
+  deleteDoc,
+  getDoc
 } from 'firebase/firestore';
 import { 
   getAuth, 
@@ -143,38 +145,14 @@ function App() {
   // Auction phase tracking
   const [currentPhase, setCurrentPhase] = useState('premium'); // 'premium' (85+), 'regular' (83-85), 'free' (78-82)
 
-  // Initialize sample data
+  // Initialize sample data - OPTIMIZED: Only add players when auction starts
   const initializeSampleData = useCallback(async () => {
     if (dataInitialized) return;
     
     try {
-      // Check if players already exist
-      const playersQuery = query(collection(db, 'players'), limit(1));
-      const playersSnapshot = await getDocs(playersQuery);
-      
-      if (playersSnapshot.empty) {
-        console.log('Initializing FIFA 23 player data...');
-        // Add sample players to Firestore
-        const playersCollection = collection(db, 'players');
-        for (const player of SAMPLE_PLAYERS) {
-          await addDoc(playersCollection, player);
-        }
-        console.log(`FIFA 23 data initialized with ${SAMPLE_PLAYERS.length} players!`);
-      }
-
-      // Initialize auction document if it doesn't exist
-      const auctionRef = doc(db, 'auctions', auctionRoomId || 'default');
-      await setDoc(auctionRef, {
-        currentPlayer: null,
-        currentBid: 0,
-        highestBidder: null,
-        bidders: [],
-        foldedUsers: [],
-        status: 'waiting',
-        timer: 0,
-        roomName: 'Default Room',
-        isComplete: false
-      }, { merge: true });
+      // SKIP uploading all 1,521 players to Firebase
+      // Players will be added dynamically during auction to save quota
+      console.log(`FIFA 23 player database loaded: ${SAMPLE_PLAYERS.length} players available`);
 
       setDataInitialized(true);
     } catch (error) {
@@ -464,22 +442,26 @@ function App() {
   };
 
   const getAvailablePlayersForPhase = async (phase) => {
-    const playersQuery = query(
-      collection(db, 'players'),
-      where('isSold', '==', false)
-    );
-    
-    const playersSnapshot = await getDocs(playersQuery);
+    // Use local player data instead of Firebase to save quota
     const availablePlayers = [];
     
-    playersSnapshot.forEach((doc) => {
-      const playerData = doc.data();
-      const playerPhase = getAuctionPhase(playerData.rating);
+    // Get list of sold players from auction state
+    const soldPlayerNames = new Set();
+    if (auction?.soldPlayers) {
+      auction.soldPlayers.forEach(p => soldPlayerNames.add(p.name));
+    }
+    
+    // Filter players by phase and sold status
+    SAMPLE_PLAYERS.forEach((player) => {
+      const playerPhase = getAuctionPhase(player.rating);
       
-      if (playerPhase === phase && playerData.rating >= 78) {
-        availablePlayers.push({ id: doc.id, ...playerData });
+      if (playerPhase === phase && player.rating >= 78 && !soldPlayerNames.has(player.name)) {
+        availablePlayers.push({ ...player });
       }
     });
+    
+    // Sort players by rating in descending order (highest to lowest)
+    availablePlayers.sort((a, b) => b.rating - a.rating);
     
     return availablePlayers;
   };
@@ -508,7 +490,8 @@ function App() {
         timer: 0,
         isComplete: false,
         initialBudget: initialBudget,
-        currentPhase: 'premium' // Start with premium players (85+)
+        currentPhase: 'premium', // Start with premium players (85+)
+        soldPlayers: [] // Track sold players locally instead of Firebase
       });
       
       // Update user to join this room
@@ -551,23 +534,77 @@ function App() {
 
   const leaveAuctionRoom = async () => {
     try {
-      // Clear user's auction room
+      // Simply delete the user document to clear all their data
       const userRef = doc(db, 'users', user.uid);
-      await updateDoc(userRef, {
-        auctionRoomId: null
-      });
       
-      // Reset state
+      try {
+        await deleteDoc(userRef);
+      } catch (deleteError) {
+        // If delete fails, try to update instead
+        console.log('Delete failed, trying update:', deleteError);
+        await updateDoc(userRef, {
+          auctionRoomId: null,
+          team: [],
+          budget: 1000
+        });
+      }
+      
+      // Reset local state
+      setAuctionRoomId(null);
+      setAuction(null);
+      setUsers([]);
+      setIsAdmin(false);
+      setShowAuctionMenu(true);
+      setCurrentUser(null);
+      setShowNameInput(true);
+      
+      showSuccess('Left auction room and team deleted');
+    } catch (error) {
+      console.error('Error leaving room:', error);
+      showError('Failed to leave room: ' + error.message);
+    }
+  };
+
+  // Clear all Firebase data (Admin only)
+  const clearAllData = async () => {
+    if (!isAdmin) {
+      showError('Only admin can clear all data');
+      return;
+    }
+    
+    const confirmed = window.confirm('⚠️ WARNING: This will delete ALL auction rooms and teams. This action cannot be undone. Are you sure?');
+    if (!confirmed) return;
+    
+    try {
+      console.log('🔄 Starting data cleanup...');
+      
+      // Delete all auctions
+      const auctionsSnapshot = await getDocs(collection(db, 'auctions'));
+      let deletedCount = 0;
+      
+      for (const auctionDoc of auctionsSnapshot.docs) {
+        await deleteDoc(doc(db, 'auctions', auctionDoc.id));
+        deletedCount++;
+      }
+      
+      // Clear all user auction associations
+      const usersSnapshot = await getDocs(collection(db, 'users'));
+      for (const userDoc of usersSnapshot.docs) {
+        await deleteDoc(doc(db, 'users', userDoc.id));
+      }
+      
+      // Reset local state
       setAuctionRoomId(null);
       setAuction(null);
       setUsers([]);
       setIsAdmin(false);
       setShowAuctionMenu(true);
       
-      showSuccess('Left auction room');
+      showSuccess(`Deleted ${deletedCount} auctions and cleared all data`);
+      console.log('✅ Data cleanup complete');
     } catch (error) {
-      console.error('Error leaving room:', error);
-      showError('Failed to leave room');
+      console.error('Error clearing data:', error);
+      showError('Failed to clear data');
     }
   };
 
@@ -669,14 +706,14 @@ function App() {
         }
       }
       
-      // Select random player from available players in current phase
-      const randomPlayer = availablePlayers[Math.floor(Math.random() * availablePlayers.length)];
-      const basePrice = getBasePrice(randomPlayer.rating);
+      // Select highest rated player from available players in current phase (already sorted descending)
+      const selectedPlayer = availablePlayers[0]; // First player = highest rating
+      const basePrice = getBasePrice(selectedPlayer.rating);
       
       // Update auction state
       const auctionRef = doc(db, 'auctions', auctionRoomId);
       await updateDoc(auctionRef, {
-        currentPlayer: randomPlayer,
+        currentPlayer: selectedPlayer,
         currentBid: basePrice,
         basePrice: basePrice,
         highestBidder: basePrice === 0 ? null : 'system', // System holds base price
@@ -691,13 +728,13 @@ function App() {
       const phaseInfo = getPhaseDescription(currentAuctionPhase);
       await addActivityLog(
         'auction_start',
-        `Auction started for ${randomPlayer.name} (${randomPlayer.rating} rated) - ${phaseInfo}`,
-        randomPlayer.name,
+        `Auction started for ${selectedPlayer.name} (${selectedPlayer.rating} rated) - ${phaseInfo}`,
+        selectedPlayer.name,
         basePrice
       );
       
       if (basePrice > 0) {
-        showSuccess(`Auction started for ${randomPlayer.name}! Base price: ${basePrice}M`);
+        showSuccess(`Auction started for ${selectedPlayer.name}! Base price: ${basePrice}M`);
       } else {
         showSuccess(`Free pick available: ${randomPlayer.name}! First bid wins!`);
       }
@@ -806,22 +843,15 @@ function App() {
             team: [...winnerData.team, auction.currentPlayer]
           });
           
-          // Mark player as sold
-          const playersQuery = query(
-            collection(db, 'players'),
-            where('name', '==', auction.currentPlayer.name)
-          );
+          // Get current auction data to update sold players
+          const auctionDoc = await transaction.get(auctionRef);
+          const currentSoldPlayers = auctionDoc.data().soldPlayers || [];
           
-          const playersSnapshot = await getDocs(playersQuery);
-          if (!playersSnapshot.empty) {
-            const playerDoc = playersSnapshot.docs[0];
-            transaction.update(playerDoc.ref, { isSold: true });
-          }
-          
-          // Update auction status
+          // Update auction status and add to sold players list
           transaction.update(auctionRef, {
             status: 'sold',
-            timer: 0
+            timer: 0,
+            soldPlayers: [...currentSoldPlayers, auction.currentPlayer]
           });
         });
         
@@ -1271,13 +1301,22 @@ function App() {
               <div className="bg-gray-800 rounded-lg p-4">
                 <h3 className="text-lg font-bold mb-4">Admin Controls</h3>
                 
-                <button
-                  onClick={startNextAuction}
-                  disabled={auction?.status === 'bidding'}
-                  className="bg-blue-600 hover:bg-blue-700 disabled:bg-gray-600 disabled:cursor-not-allowed px-6 py-3 rounded-lg font-bold transition-colors"
-                >
-                  {auction?.currentPlayer ? 'Next Player' : 'Start Auction'}
-                </button>
+                <div className="flex flex-col gap-3">
+                  <button
+                    onClick={startNextAuction}
+                    disabled={auction?.status === 'bidding'}
+                    className="bg-blue-600 hover:bg-blue-700 disabled:bg-gray-600 disabled:cursor-not-allowed px-6 py-3 rounded-lg font-bold transition-colors"
+                  >
+                    {auction?.currentPlayer ? 'Next Player' : 'Start Auction'}
+                  </button>
+                  
+                  <button
+                    onClick={clearAllData}
+                    className="bg-red-600 hover:bg-red-700 px-6 py-3 rounded-lg font-bold transition-colors"
+                  >
+                    🗑️ Clear All Data
+                  </button>
+                </div>
               </div>
             )}
           </div>

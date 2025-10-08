@@ -38,8 +38,8 @@ const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 const auth = getAuth(app);
 
-// Import the complete FIFA 23 player database (1,721 players, 78+ rating)
-import ALL_FIFA_PLAYERS from './all-fifa-players.js';
+// Import the official FIFA 23 male players database (1,521 players, 78+ rating)
+import ALL_FIFA_PLAYERS from './fifa23-players-official.js';
 
 // Real player photo mapping for better images
 const PLAYER_PHOTO_MAP = {
@@ -105,10 +105,11 @@ function getPlayerPhoto(playerName) {
   return sources[0]; // Return primary source
 }
 
-// Use the complete FIFA 23 database (1,721 players, 78+ rating)
+// Use the official FIFA 23 male players database (1,521 players, 78+ rating)
+// Distribution: 89 premium (85+), 101 regular (83-84), 1,331 free picks (78-82)
 const SAMPLE_PLAYERS = ALL_FIFA_PLAYERS.map(player => ({
   ...player,
-  imageUrl: getPlayerPhoto(player.name) // Apply better photo mapping
+  imageUrl: player.imageUrl || getPlayerPhoto(player.name) // Use official photo or fallback
 }));
 
 function App() {

@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { initializeApp } from 'firebase/app';
 import { 
   getFirestore, 
@@ -144,6 +144,16 @@ function App() {
   
   // Auction phase tracking
   const [currentPhase, setCurrentPhase] = useState('premium'); // 'premium' (85+), 'regular' (83-85), 'free' (78-82)
+  
+  // Ref to prevent auth listener interference when leaving room (using ref to avoid useEffect re-triggering)
+  const isLeavingRoomRef = useRef(false);
+  
+  // Super admin mode - gives full control over all auctions
+  const [isSuperAdmin, setIsSuperAdmin] = useState(false);
+  const [showAdminPanel, setShowAdminPanel] = useState(false);
+  
+  // Firebase quota warning
+  const [showQuotaWarning, setShowQuotaWarning] = useState(false);
 
   // Initialize sample data - OPTIMIZED: Only add players when auction starts
   const initializeSampleData = useCallback(async () => {
@@ -165,6 +175,12 @@ function App() {
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
       if (user) {
         setUser(user);
+        
+        // Skip auth check if user is intentionally leaving room
+        if (isLeavingRoomRef.current) {
+          console.log('Skipping auth check - user is leaving room');
+          return;
+        }
         
         try {
           // Check if user exists in database
@@ -207,6 +223,13 @@ function App() {
           }
         } catch (error) {
           console.error('Error checking user data:', error);
+          
+          // Check for Firebase quota errors
+          if (error.code === 'resource-exhausted' || (error.message && error.message.includes('Quota exceeded'))) {
+            setShowQuotaWarning(true);
+            setError('⚠️ Firebase quota exceeded! Your free plan limits have been reached.');
+          }
+          
           // Fallback to name input if there's an error
           setShowNameInput(true);
         }
@@ -225,31 +248,35 @@ function App() {
     return () => unsubscribe();
   }, []);
 
-  // Handle page unload (when user closes browser/tab)
+  // OPTIMIZATION: Removed online status tracking to save writes
+  // Users don't need real-time online/offline status for this app
+  // This saves 2-4 writes per user session
+
+  // OPTIMIZATION: Load activity logs only when modal is open
   useEffect(() => {
-    const handleBeforeUnload = async () => {
-      if (user && currentUser) {
-        try {
-          const userRef = doc(db, 'users', user.uid);
-          await updateDoc(userRef, {
-            isOnline: false,
-            lastSeen: Date.now()
-          });
-        } catch (error) {
-          console.error('Error updating offline status:', error);
+    if (!auctionRoomId || !showLogsView) return;
+
+    const loadLogs = async () => {
+      try {
+        const logsQuery = query(
+          collection(db, 'activityLogs'),
+          where('auctionRoomId', '==', auctionRoomId),
+          orderBy('timestamp', 'desc'),
+          limit(20)
+        );
+        const logsSnapshot = await getDocs(logsQuery);
+        const logsData = logsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+        setActivityLogs(logsData);
+      } catch (error) {
+        console.error('Error loading logs:', error);
+        if (error.code === 'resource-exhausted') {
+          console.warn('Quota exceeded on logs load');
         }
       }
     };
 
-    // Only add beforeunload listener, remove visibility change to reduce writes
-    window.addEventListener('beforeunload', handleBeforeUnload);
-
-    // Cleanup
-    return () => {
-      window.removeEventListener('beforeunload', handleBeforeUnload);
-      handleBeforeUnload(); // Set offline when component unmounts
-    };
-  }, [user, currentUser]);
+    loadLogs();
+  }, [auctionRoomId, showLogsView]);
 
   // Real-time listeners
   useEffect(() => {
@@ -295,55 +322,51 @@ function App() {
       }
     );
 
-    // Listen to activity logs for this auction room (reduced frequency)
-    const unsubscribeLogs = onSnapshot(
-      query(
-        collection(db, 'activityLogs'), 
-        where('auctionRoomId', '==', auctionRoomId),
-        orderBy('timestamp', 'desc'),
-        limit(20) // Reduced from 50 to 20
-      ),
-      (snapshot) => {
-        const logsData = [];
-        snapshot.forEach((doc) => {
-          logsData.push({ id: doc.id, ...doc.data() });
-        });
-        setActivityLogs(logsData);
-      },
-      (error) => {
-        console.error('Logs listener error:', error);
-        // Don't crash the app if logs fail
-      }
-    );
+    // OPTIMIZATION: Don't listen to activity logs here - only load when viewing
+    // This saves constant reads. Load logs on-demand when user opens logs modal.
 
     return () => {
       unsubscribeUser();
       unsubscribeAuction();
       unsubscribeUsers();
-      unsubscribeLogs();
     };
   }, [user, auctionRoomId]);
 
-  // Timer countdown
+  // Timer countdown - OPTIMIZED: Local timer, sync only every 5 seconds
   useEffect(() => {
-    if (timer > 0 && auction?.status === 'bidding' && auctionRoomId) {
+    if (timer > 0 && auction?.status === 'bidding' && auctionRoomId && isAdmin) {
+      let localTimer = timer;
+      let syncCounter = 0;
+      
       const interval = setInterval(async () => {
-        const newTimer = timer - 1;
-        setTimer(newTimer);
+        localTimer--;
+        syncCounter++;
+        setTimer(localTimer);
         
-        // Update timer in Firestore
-        const auctionRef = doc(db, 'auctions', auctionRoomId);
-        await updateDoc(auctionRef, { timer: newTimer });
+        // OPTIMIZATION: Only sync to Firebase every 5 seconds instead of every second
+        // This reduces writes by 80% (1 write per 5 seconds instead of 1 per second)
+        if (syncCounter % 5 === 0 || localTimer === 0) {
+          try {
+            const auctionRef = doc(db, 'auctions', auctionRoomId);
+            await updateDoc(auctionRef, { timer: localTimer });
+          } catch (error) {
+            console.error('Timer sync error:', error);
+            if (error.code === 'resource-exhausted') {
+              console.warn('Quota exceeded on timer sync');
+            }
+          }
+        }
         
         // End auction when timer reaches 0
-        if (newTimer === 0) {
+        if (localTimer === 0) {
+          clearInterval(interval);
           await endAuction();
         }
       }, 1000);
 
       return () => clearInterval(interval);
     }
-  }, [timer, auction?.status, auctionRoomId]);
+  }, [timer, auction?.status, auctionRoomId, isAdmin]);
 
   // User setup functions
   const submitUserName = async () => {
@@ -352,7 +375,18 @@ function App() {
       return;
     }
     
+    if (!user) {
+      showError('Authentication required. Please refresh the page.');
+      return;
+    }
+    
     try {
+      // Reset the leaving room flag if it's still set
+      if (isLeavingRoomRef.current) {
+        isLeavingRoomRef.current = false;
+        console.log('Reset isLeavingRoom flag');
+      }
+      
       const userRef = doc(db, 'users', user.uid);
       
       if (currentUser) {
@@ -366,13 +400,13 @@ function App() {
           name: userName.trim()
         });
       } else {
-        // New user
+        // New user - create document (OPTIMIZED: removed isOnline field)
         await setDoc(userRef, {
           name: userName.trim(),
           budget: initialBudget,
           team: [],
-          isOnline: true,
-          joinedAt: Date.now()
+          joinedAt: Date.now(),
+          auctionRoomId: null
         });
         
         setCurrentUser({
@@ -380,17 +414,26 @@ function App() {
           name: userName.trim(),
           budget: initialBudget,
           team: [],
-          isOnline: true,
-          joinedAt: Date.now()
+          joinedAt: Date.now(),
+          auctionRoomId: null
         });
       }
       
       setShowNameInput(false);
       setShowAuctionMenu(true);
+      setUserName(''); // Clear the input
       showSuccess(`Name ${currentUser ? 'updated' : 'saved'} successfully!`);
     } catch (error) {
       console.error('Error saving user name:', error);
-      showError('Failed to save name');
+      
+      // Check for Firebase quota errors
+      if (error.code === 'resource-exhausted' || error.message.includes('Quota exceeded')) {
+        showError('⚠️ Firebase quota exceeded! Please upgrade your plan or wait 24 hours. For now, use Local Storage mode.');
+      } else if (error.code === 'unavailable') {
+        showError('Firebase is temporarily unavailable. Please try again in a moment.');
+      } else {
+        showError('Failed to save name: ' + error.message);
+      }
     }
   };
 
@@ -473,6 +516,16 @@ function App() {
       return;
     }
     
+    if (!initialBudget || initialBudget < 100) {
+      showError('Initial budget must be at least 100M');
+      return;
+    }
+    
+    if (!currentUser) {
+      showError('Please enter your name first');
+      return;
+    }
+    
     try {
       const roomId = 'room_' + Date.now();
       const roomRef = doc(db, 'auctions', roomId);
@@ -494,11 +547,15 @@ function App() {
         soldPlayers: [] // Track sold players locally instead of Firebase
       });
       
-      // Update user to join this room
+      // Create or update user document to join this room
       const userRef = doc(db, 'users', user.uid);
-      await updateDoc(userRef, {
-        auctionRoomId: roomId
-      });
+      await setDoc(userRef, {
+        name: currentUser.name,
+        auctionRoomId: roomId,
+        budget: initialBudget,
+        team: [],
+        joinedAt: Date.now()
+      }, { merge: true });
       
       setAuctionRoomId(roomId);
       setShowAuctionMenu(false);
@@ -506,20 +563,40 @@ function App() {
       await initializeSampleData();
       
       showSuccess(`Created room: ${newRoomName.trim()}`);
+      setNewRoomName('');
+      setInitialBudget(1000);
     } catch (error) {
       console.error('Error creating room:', error);
-      showError('Failed to create room');
+      showError('Failed to create room: ' + error.message);
     }
   };
 
   const joinAuctionRoom = async (room) => {
     try {
-      // Update user budget to match room's initial budget
+      if (!room || !room.id) {
+        showError('Invalid room');
+        return;
+      }
+      
+      if (room.isComplete) {
+        showError('This auction is already complete');
+        return;
+      }
+      
+      if (!currentUser) {
+        showError('Please enter your name first');
+        return;
+      }
+      
+      // Create or update user document to join this room
       const userRef = doc(db, 'users', user.uid);
-      await updateDoc(userRef, {
+      await setDoc(userRef, {
+        name: currentUser.name,
         auctionRoomId: room.id,
-        budget: room.initialBudget || 200
-      });
+        budget: room.initialBudget || 1000,
+        team: [],
+        joinedAt: Date.now()
+      }, { merge: true });
       
       setAuctionRoomId(room.id);
       setShowAuctionMenu(false);
@@ -528,46 +605,192 @@ function App() {
       showSuccess(`Joined auction room: ${room.roomName}!`);
     } catch (error) {
       console.error('Error joining room:', error);
-      showError('Failed to join room');
+      showError('Failed to join room: ' + error.message);
     }
   };
 
   const leaveAuctionRoom = async () => {
+    if (!user || !currentUser) {
+      showError('No active session to leave from');
+      return;
+    }
+    
+    const confirmed = window.confirm('Are you sure you want to leave this auction room? Your team will be deleted.');
+    if (!confirmed) return;
+    
     try {
-      // Simply delete the user document to clear all their data
+      // Set flag to prevent auth listener from interfering
+      isLeavingRoomRef.current = true;
+      console.log('Set isLeavingRoom flag to true');
+      
       const userRef = doc(db, 'users', user.uid);
       
-      try {
+      // Check if user document exists
+      const userDoc = await getDoc(userRef);
+      
+      if (userDoc.exists()) {
+        // Delete the user document to completely remove from this auction
         await deleteDoc(userRef);
-      } catch (deleteError) {
-        // If delete fails, try to update instead
-        console.log('Delete failed, trying update:', deleteError);
-        await updateDoc(userRef, {
-          auctionRoomId: null,
-          team: [],
-          budget: 1000
-        });
+        console.log('User document deleted successfully');
+      }
+      
+      // Reset local state immediately after deletion
+      setAuctionRoomId(null);
+      setAuction(null);
+      setUsers([]);
+      setIsAdmin(false);
+      setActivityLogs([]);
+      setShowTeamView(false);
+      setShowLogsView(false);
+      setBidAmount('');
+      
+      // Clear current user data but keep the name for re-registration
+      const userName = currentUser.name;
+      setCurrentUser(null);
+      
+      // Show name input screen with previous name pre-filled
+      setUserName(userName || '');
+      setShowNameInput(true);
+      setShowAuctionMenu(false);
+      
+      // Reset the leaving flag after a short delay
+      setTimeout(() => {
+        isLeavingRoomRef.current = false;
+        console.log('Reset isLeavingRoom flag to false');
+      }, 1000);
+      
+      showSuccess('Left auction room. Enter your name to continue.');
+    } catch (error) {
+      console.error('Error leaving room:', error);
+      isLeavingRoomRef.current = false; // Reset flag on error
+      showError('Failed to leave room: ' + error.message);
+    }
+  };
+
+  // Super Admin Functions
+  const enableSuperAdmin = () => {
+    const password = prompt('Enter super admin password:');
+    if (password === 'FIFA2023ADMIN') {
+      setIsSuperAdmin(true);
+      setIsAdmin(true);
+      showSuccess('Super Admin mode activated! You now have full control.');
+      console.log('Super Admin mode enabled');
+    } else {
+      showError('Invalid password');
+    }
+  };
+
+  const deleteAllRooms = async () => {
+    if (!isSuperAdmin) {
+      showError('Super Admin access required');
+      return;
+    }
+    
+    const confirmed = window.confirm('⚠️ WARNING: This will delete ALL auction rooms and user data. Are you absolutely sure?');
+    if (!confirmed) return;
+    
+    const doubleConfirm = window.confirm('This action CANNOT be undone. Type OK in the next prompt to confirm.');
+    if (!doubleConfirm) return;
+    
+    const finalConfirm = prompt('Type "DELETE ALL" to confirm (case sensitive):');
+    if (finalConfirm !== 'DELETE ALL') {
+      showError('Confirmation cancelled');
+      return;
+    }
+    
+    try {
+      console.log('🔄 Starting complete data wipe...');
+      
+      // Delete all auctions
+      const auctionsSnapshot = await getDocs(collection(db, 'auctions'));
+      let deletedAuctions = 0;
+      
+      for (const auctionDoc of auctionsSnapshot.docs) {
+        await deleteDoc(doc(db, 'auctions', auctionDoc.id));
+        deletedAuctions++;
+        console.log(`Deleted auction: ${auctionDoc.id}`);
+      }
+      
+      // Delete all users
+      const usersSnapshot = await getDocs(collection(db, 'users'));
+      let deletedUsers = 0;
+      
+      for (const userDoc of usersSnapshot.docs) {
+        await deleteDoc(doc(db, 'users', userDoc.id));
+        deletedUsers++;
+        console.log(`Deleted user: ${userDoc.id}`);
+      }
+      
+      // Delete all activity logs
+      const logsSnapshot = await getDocs(collection(db, 'activityLogs'));
+      let deletedLogs = 0;
+      
+      for (const logDoc of logsSnapshot.docs) {
+        await deleteDoc(doc(db, 'activityLogs', logDoc.id));
+        deletedLogs++;
       }
       
       // Reset local state
       setAuctionRoomId(null);
       setAuction(null);
       setUsers([]);
-      setIsAdmin(false);
-      setShowAuctionMenu(true);
+      setActivityLogs([]);
+      setAuctionRooms([]);
       setCurrentUser(null);
       setShowNameInput(true);
+      setShowAuctionMenu(false);
+      setShowAdminPanel(false);
       
-      showSuccess('Left auction room and team deleted');
+      showSuccess(`✅ Deleted ${deletedAuctions} auctions, ${deletedUsers} users, ${deletedLogs} logs. Database cleared!`);
+      console.log('✅ Complete data wipe finished');
     } catch (error) {
-      console.error('Error leaving room:', error);
-      showError('Failed to leave room: ' + error.message);
+      console.error('Error deleting all data:', error);
+      showError('Failed to delete all data: ' + error.message);
+    }
+  };
+
+  const deleteSpecificRoom = async (roomId) => {
+    if (!isSuperAdmin) {
+      showError('Super Admin access required');
+      return;
+    }
+    
+    const confirmed = window.confirm('Delete this room and all associated user data?');
+    if (!confirmed) return;
+    
+    try {
+      // Delete the auction room
+      await deleteDoc(doc(db, 'auctions', roomId));
+      
+      // Delete all users in this room
+      const usersInRoom = await getDocs(
+        query(collection(db, 'users'), where('auctionRoomId', '==', roomId))
+      );
+      
+      for (const userDoc of usersInRoom.docs) {
+        await deleteDoc(doc(db, 'users', userDoc.id));
+      }
+      
+      // Delete activity logs for this room
+      const logsInRoom = await getDocs(
+        query(collection(db, 'activityLogs'), where('auctionRoomId', '==', roomId))
+      );
+      
+      for (const logDoc of logsInRoom.docs) {
+        await deleteDoc(doc(db, 'activityLogs', logDoc.id));
+      }
+      
+      showSuccess('Room deleted successfully');
+      console.log(`Deleted room: ${roomId}`);
+    } catch (error) {
+      console.error('Error deleting room:', error);
+      showError('Failed to delete room: ' + error.message);
     }
   };
 
   // Clear all Firebase data (Admin only)
   const clearAllData = async () => {
-    if (!isAdmin) {
+    if (!isAdmin && !isSuperAdmin) {
       showError('Only admin can clear all data');
       return;
     }
@@ -647,8 +870,23 @@ function App() {
     try {
       clearMessages();
       
+      if (!isAdmin) {
+        showError('Only the host can start auctions');
+        return;
+      }
+      
+      if (auction?.status === 'bidding') {
+        showError('Current auction is still active');
+        return;
+      }
+      
+      if (!users || users.length === 0) {
+        showError('No participants in the auction');
+        return;
+      }
+      
       // Check if auction should end (everyone has 11 players)
-      const minTeamSize = Math.min(...users.map(u => u.team.length));
+      const minTeamSize = Math.min(...users.map(u => (u.team || []).length));
       if (minTeamSize >= 11) {
         // Mark auction as complete
         const auctionRef = doc(db, 'auctions', auctionRoomId);
@@ -736,7 +974,7 @@ function App() {
       if (basePrice > 0) {
         showSuccess(`Auction started for ${selectedPlayer.name}! Base price: ${basePrice}M`);
       } else {
-        showSuccess(`Free pick available: ${randomPlayer.name}! First bid wins!`);
+        showSuccess(`Free pick available: ${selectedPlayer.name}! First bid wins!`);
       }
     } catch (error) {
       console.error('Error starting auction:', error);
@@ -751,7 +989,7 @@ function App() {
       const bid = parseInt(bidAmount);
       const basePrice = auction.basePrice || 0;
       
-      if (!bid || bid <= 0) {
+      if (!bid || bid <= 0 || isNaN(bid)) {
         showError('Please enter a valid bid amount');
         return;
       }
@@ -771,14 +1009,19 @@ function App() {
         return;
       }
       
-      if (auction.foldedUsers.includes(user.uid)) {
+      if (auction.foldedUsers && auction.foldedUsers.includes(user.uid)) {
         showError('You have already folded on this player');
+        return;
+      }
+      
+      if (auction.status !== 'bidding') {
+        showError('Auction is not active');
         return;
       }
       
       // Use simpler update instead of transaction to avoid conflicts
       const auctionRef = doc(db, 'auctions', auctionRoomId);
-      const newBidders = [...new Set([...auction.bidders, user.uid])];
+      const newBidders = [...new Set([...(auction.bidders || []), user.uid])];
       
       await updateDoc(auctionRef, {
         currentBid: bid,
@@ -802,13 +1045,18 @@ function App() {
     try {
       clearMessages();
       
-      if (auction.foldedUsers.includes(user.uid)) {
+      if (!auction || auction.status !== 'bidding') {
+        showError('No active auction to fold on');
+        return;
+      }
+      
+      if (auction.foldedUsers && auction.foldedUsers.includes(user.uid)) {
         showError('You have already folded on this player');
         return;
       }
       
       const auctionRef = doc(db, 'auctions', auctionRoomId);
-      const newFoldedUsers = [...auction.foldedUsers, user.uid];
+      const newFoldedUsers = [...(auction.foldedUsers || []), user.uid];
       
       await updateDoc(auctionRef, {
         foldedUsers: newFoldedUsers
@@ -823,10 +1071,15 @@ function App() {
 
   const endAuction = async () => {
     try {
+      if (!auction || !auction.currentPlayer) {
+        showError('No active auction to end');
+        return;
+      }
+      
       const auctionRef = doc(db, 'auctions', auctionRoomId);
       
-      if (auction.highestBidder) {
-        // Player sold
+      if (auction.highestBidder && auction.highestBidder !== 'system') {
+        // Player sold to a user
         await runTransaction(db, async (transaction) => {
           const winnerRef = doc(db, 'users', auction.highestBidder);
           const winnerDoc = await transaction.get(winnerRef);
@@ -837,10 +1090,15 @@ function App() {
           
           const winnerData = winnerDoc.data();
           
+          // Validate budget
+          if (winnerData.budget < auction.currentBid) {
+            throw new Error('Winner does not have enough budget');
+          }
+          
           // Update winner's budget and team
           transaction.update(winnerRef, {
             budget: winnerData.budget - auction.currentBid,
-            team: [...winnerData.team, auction.currentPlayer]
+            team: [...(winnerData.team || []), auction.currentPlayer]
           });
           
           // Get current auction data to update sold players
@@ -870,7 +1128,7 @@ function App() {
         showSuccess(`${auction.currentPlayer.name} sold to ${winnerName} for ${auction.currentBid}M!`);
         
         // Check if auction should continue
-        const minTeamSize = Math.min(...users.map(u => u.team.length));
+        const minTeamSize = Math.min(...users.map(u => (u.team || []).length));
         if (minTeamSize >= 11) {
           setTimeout(() => {
             showSuccess('🎉 Auction complete! Everyone has 11 players!');
@@ -895,7 +1153,7 @@ function App() {
       }
     } catch (error) {
       console.error('Error ending auction:', error);
-      showError('Error ending auction');
+      showError('Error ending auction: ' + (error.message || 'Unknown error'));
     }
   };
 
@@ -920,6 +1178,28 @@ function App() {
     return (
       <div className="min-h-screen bg-gray-900 flex items-center justify-center">
         <div className="bg-gray-800 p-8 rounded-lg shadow-lg max-w-md w-full mx-4">
+          {showQuotaWarning && (
+            <div className="mb-6 p-4 bg-red-900 border-2 border-red-600 rounded-lg">
+              <h3 className="text-white font-bold mb-2 flex items-center">
+                ⚠️ Firebase Quota Exceeded
+              </h3>
+              <p className="text-red-200 text-sm mb-2">
+                Your Firebase free plan has reached its daily limits. You have 3 options:
+              </p>
+              <ol className="text-red-200 text-sm list-decimal list-inside space-y-1">
+                <li>Wait 24 hours for quota to reset</li>
+                <li>Upgrade to Firebase Blaze (pay-as-you-go) plan</li>
+                <li>Use the Local Storage version (App-LocalStorage.jsx)</li>
+              </ol>
+              <button
+                onClick={() => setShowQuotaWarning(false)}
+                className="mt-3 text-xs text-red-300 hover:text-white underline"
+              >
+                Dismiss this warning
+              </button>
+            </div>
+          )}
+          
           <h2 className="text-2xl font-bold text-green-400 mb-6 text-center">
             {currentUser ? 'Change Your Name' : 'Welcome to FIFA 23 Auction!'}
           </h2>
@@ -961,6 +1241,18 @@ function App() {
           {error && (
             <div className="mt-4 p-3 bg-red-600 text-white rounded-lg text-center">
               {error}
+              {error.includes('quota') && (
+                <div className="mt-2">
+                  <a 
+                    href="https://console.firebase.google.com/project/fifa-auction-app/usage" 
+                    target="_blank" 
+                    rel="noopener noreferrer"
+                    className="text-sm underline hover:text-red-100"
+                  >
+                    Check Firebase Usage →
+                  </a>
+                </div>
+              )}
             </div>
           )}
           {success && (
@@ -981,18 +1273,41 @@ function App() {
           <div className="container mx-auto flex justify-between items-center">
             <div>
               <h1 className="text-2xl font-bold text-green-400">FIFA 23 Friends Auction</h1>
-              <p className="text-gray-300">Welcome, {currentUser?.name}!</p>
+              <p className="text-gray-300">
+                Welcome, {currentUser?.name}!
+                {isSuperAdmin && <span className="ml-2 px-2 py-1 bg-red-600 text-white text-xs rounded font-bold">SUPER ADMIN</span>}
+              </p>
             </div>
-            <button
-              onClick={() => {
-                setShowAuctionMenu(false);
-                setShowNameInput(true);
-                setUserName(currentUser?.name || '');
-              }}
-              className="bg-gray-700 hover:bg-gray-600 px-4 py-2 rounded-lg text-white text-sm transition-colors"
-            >
-              Change Name
-            </button>
+            <div className="flex gap-2">
+              {!isSuperAdmin && (
+                <button
+                  onClick={enableSuperAdmin}
+                  onDoubleClick={enableSuperAdmin}
+                  className="bg-red-900 hover:bg-red-800 px-4 py-2 rounded-lg text-white text-sm transition-colors"
+                  title="Double-click for Super Admin access"
+                >
+                  🔐 Admin
+                </button>
+              )}
+              {isSuperAdmin && (
+                <button
+                  onClick={() => setShowAdminPanel(true)}
+                  className="bg-red-600 hover:bg-red-700 px-4 py-2 rounded-lg text-white text-sm font-bold transition-colors"
+                >
+                  🛠️ Admin Panel
+                </button>
+              )}
+              <button
+                onClick={() => {
+                  setShowAuctionMenu(false);
+                  setShowNameInput(true);
+                  setUserName(currentUser?.name || '');
+                }}
+                className="bg-gray-700 hover:bg-gray-600 px-4 py-2 rounded-lg text-white text-sm transition-colors"
+              >
+                Change Name
+              </button>
+            </div>
           </div>
         </header>
 
@@ -1025,7 +1340,7 @@ function App() {
               </div>
               <button
                 onClick={createAuctionRoom}
-                disabled={!newRoomName.trim()}
+                disabled={!newRoomName.trim() || !initialBudget || initialBudget < 100}
                 className="w-full bg-green-600 hover:bg-green-700 disabled:bg-gray-600 disabled:cursor-not-allowed py-3 rounded-lg font-bold transition-colors"
               >
                 Create Room
@@ -1040,7 +1355,7 @@ function App() {
               <div className="grid gap-4">
                 {auctionRooms.map((room) => (
                   <div key={room.id} className="bg-gray-700 p-4 rounded-lg flex justify-between items-center">
-                    <div>
+                    <div className="flex-1">
                       <h3 className="font-bold text-white">{room.roomName}</h3>
                       <p className="text-gray-300 text-sm">
                         Created by: {room.createdBy} | Status: {room.status || 'waiting'}
@@ -1048,13 +1363,30 @@ function App() {
                       <p className="text-green-400 text-sm font-medium">
                         Budget: {room.initialBudget || 200} million each
                       </p>
+                      {isSuperAdmin && (
+                        <p className="text-red-400 text-xs mt-1 font-mono">
+                          ID: {room.id}
+                        </p>
+                      )}
                     </div>
-                    <button
-                      onClick={() => joinAuctionRoom(room)}
-                      className="bg-blue-600 hover:bg-blue-700 px-4 py-2 rounded-lg font-bold transition-colors"
-                    >
-                      Join
-                    </button>
+                    <div className="flex gap-2">
+                      <button
+                        onClick={() => joinAuctionRoom(room)}
+                        disabled={room.isComplete}
+                        className="bg-blue-600 hover:bg-blue-700 disabled:bg-gray-600 disabled:cursor-not-allowed px-4 py-2 rounded-lg font-bold transition-colors"
+                      >
+                        {room.isComplete ? 'Completed' : 'Join'}
+                      </button>
+                      {isSuperAdmin && (
+                        <button
+                          onClick={() => deleteSpecificRoom(room.id)}
+                          className="bg-red-600 hover:bg-red-700 px-4 py-2 rounded-lg font-bold transition-colors"
+                          title="Delete this room"
+                        >
+                          🗑️
+                        </button>
+                      )}
+                    </div>
                   </div>
                 ))}
               </div>
@@ -1113,7 +1445,8 @@ function App() {
           <div className="flex items-center gap-3">
             <button
               onClick={() => setShowTeamView(true)}
-              className="bg-blue-600 hover:bg-blue-700 px-4 py-2 rounded-lg text-white text-sm font-medium transition-colors"
+              disabled={!currentUser}
+              className="bg-blue-600 hover:bg-blue-700 disabled:bg-gray-600 disabled:cursor-not-allowed px-4 py-2 rounded-lg text-white text-sm font-medium transition-colors"
             >
               My Team ({currentUser?.team?.length || 0}/11)
             </button>
@@ -1250,7 +1583,7 @@ function App() {
                 </div>
 
                 {/* Bidding Controls */}
-                {auction.status === 'bidding' && !auction.foldedUsers.includes(user.uid) && (
+                {auction.status === 'bidding' && !(auction.foldedUsers || []).includes(user.uid) && (
                   <div className="bg-gray-700 rounded-lg p-4">
                     <h3 className="text-lg font-bold mb-4">Place Your Bid</h3>
                     
@@ -1263,27 +1596,36 @@ function App() {
                         className="flex-1 bg-gray-600 text-white p-3 rounded-lg border border-gray-500 focus:border-green-400 focus:outline-none"
                         min={Math.max(auction.basePrice || 0, auction.currentBid + 1)}
                         max={currentUser.budget}
+                        onKeyPress={(e) => e.key === 'Enter' && placeBid()}
                       />
                       
                       <button
                         onClick={placeBid}
-                        disabled={!bidAmount || parseInt(bidAmount) < Math.max(auction.basePrice || 0, auction.currentBid + 1) || parseInt(bidAmount) > currentUser.budget}
-                        className="bg-green-600 hover:bg-green-700 disabled:bg-gray-600 disabled:cursor-not-allowed px-6 py-3 rounded-lg font-bold transition-colors"
+                        disabled={!bidAmount || isNaN(parseInt(bidAmount)) || parseInt(bidAmount) < Math.max(auction.basePrice || 0, auction.currentBid + 1) || parseInt(bidAmount) > currentUser.budget}
+                        className="bg-green-600 hover:bg-green-700 disabled:bg-gray-600 disabled:cursor-not-allowed px-6 py-3 rounded-lg font-bold transition-colors whitespace-nowrap"
                       >
                         Place Bid
                       </button>
                       
                       <button
                         onClick={foldPlayer}
-                        className="bg-red-600 hover:bg-red-700 px-6 py-3 rounded-lg font-bold transition-colors"
+                        className="bg-red-600 hover:bg-red-700 px-6 py-3 rounded-lg font-bold transition-colors whitespace-nowrap"
                       >
                         Fold
                       </button>
                     </div>
+                    
+                    <div className="mt-3 text-sm text-gray-400">
+                      <p>Quick bids: 
+                        <button onClick={() => setBidAmount(String(Math.max(auction.basePrice || 0, auction.currentBid + 5)))} className="ml-2 px-2 py-1 bg-gray-600 hover:bg-gray-500 rounded">+5M</button>
+                        <button onClick={() => setBidAmount(String(Math.max(auction.basePrice || 0, auction.currentBid + 10)))} className="ml-2 px-2 py-1 bg-gray-600 hover:bg-gray-500 rounded">+10M</button>
+                        <button onClick={() => setBidAmount(String(Math.max(auction.basePrice || 0, auction.currentBid + 20)))} className="ml-2 px-2 py-1 bg-gray-600 hover:bg-gray-500 rounded">+20M</button>
+                      </p>
+                    </div>
                   </div>
                 )}
 
-                {auction.foldedUsers.includes(user.uid) && (
+                {(auction.foldedUsers || []).includes(user.uid) && (
                   <div className="bg-gray-700 rounded-lg p-4 text-center">
                     <p className="text-red-400 font-bold">You have folded on this player</p>
                   </div>
@@ -1304,10 +1646,18 @@ function App() {
                 <div className="flex flex-col gap-3">
                   <button
                     onClick={startNextAuction}
-                    disabled={auction?.status === 'bidding'}
+                    disabled={auction?.status === 'bidding' || auction?.isComplete}
                     className="bg-blue-600 hover:bg-blue-700 disabled:bg-gray-600 disabled:cursor-not-allowed px-6 py-3 rounded-lg font-bold transition-colors"
                   >
-                    {auction?.currentPlayer ? 'Next Player' : 'Start Auction'}
+                    {auction?.isComplete ? 'Auction Complete' : auction?.currentPlayer ? 'Next Player' : 'Start Auction'}
+                  </button>
+                  
+                  <button
+                    onClick={endAuction}
+                    disabled={auction?.status !== 'bidding'}
+                    className="bg-yellow-600 hover:bg-yellow-700 disabled:bg-gray-600 disabled:cursor-not-allowed px-6 py-3 rounded-lg font-bold transition-colors"
+                  >
+                    End Current Auction
                   </button>
                   
                   <button
@@ -1392,10 +1742,8 @@ function App() {
             <div className="p-6">
               <div className="mb-4">
                 <p className="text-gray-300">Budget Remaining: <span className="text-green-400 font-bold">{currentUser?.budget || 0}M</span></p>
-                <p className="text-gray-300">Total Spent: <span className="text-red-400 font-bold">{(initialBudget - (currentUser?.budget || 0))}M</span></p>
-              </div>
-              
-              {currentUser?.team && currentUser.team.length > 0 ? (
+                <p className="text-gray-300">Total Spent: <span className="text-red-400 font-bold">{((auction?.initialBudget || 1000) - (currentUser?.budget || 0))}M</span></p>
+              </div>              {currentUser?.team && currentUser.team.length > 0 ? (
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                   {currentUser.team.map((player, index) => (
                     <div key={index} className="bg-gray-700 rounded-lg p-4">
@@ -1469,6 +1817,85 @@ function App() {
                   <p className="text-gray-500 text-sm">Auction activity will appear here</p>
                 </div>
               )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Super Admin Panel Modal */}
+      {showAdminPanel && isSuperAdmin && (
+        <div className="fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center p-4 z-50">
+          <div className="bg-gray-800 rounded-lg max-w-2xl w-full border-4 border-red-600">
+            <div className="flex justify-between items-center p-6 border-b border-red-600 bg-red-900">
+              <h2 className="text-2xl font-bold text-white">🛠️ Super Admin Control Panel</h2>
+              <button
+                onClick={() => setShowAdminPanel(false)}
+                className="text-white hover:text-red-200 text-2xl font-bold"
+              >
+                ×
+              </button>
+            </div>
+            
+            <div className="p-6 space-y-4">
+              <div className="bg-red-950 border border-red-600 p-4 rounded-lg">
+                <h3 className="text-white font-bold mb-2">⚠️ Warning</h3>
+                <p className="text-red-200 text-sm">
+                  You have full administrative control. Use these features carefully as they cannot be undone.
+                </p>
+              </div>
+
+              <div className="bg-gray-700 p-4 rounded-lg">
+                <h3 className="text-white font-bold mb-3">Database Statistics</h3>
+                <div className="space-y-2 text-sm">
+                  <p className="text-gray-300">Total Rooms: <span className="text-green-400 font-bold">{auctionRooms.length}</span></p>
+                  <p className="text-gray-300">Total Users in DB: <span className="text-blue-400 font-bold">{users.length}</span></p>
+                  <p className="text-gray-300">Activity Logs: <span className="text-purple-400 font-bold">{activityLogs.length}</span></p>
+                </div>
+              </div>
+
+              <div className="space-y-3">
+                <button
+                  onClick={deleteAllRooms}
+                  className="w-full bg-red-600 hover:bg-red-700 py-4 rounded-lg font-bold text-white transition-colors text-lg"
+                >
+                  🗑️ DELETE ALL ROOMS & DATA
+                </button>
+
+                <div className="grid grid-cols-2 gap-3">
+                  <button
+                    onClick={() => {
+                      setShowAdminPanel(false);
+                      setIsSuperAdmin(false);
+                      setIsAdmin(false);
+                      showSuccess('Super Admin mode deactivated');
+                    }}
+                    className="bg-gray-600 hover:bg-gray-700 py-3 rounded-lg font-bold text-white transition-colors"
+                  >
+                    Exit Admin Mode
+                  </button>
+                  
+                  <button
+                    onClick={() => {
+                      console.log('Super Admin Status:', {
+                        isSuperAdmin,
+                        isAdmin,
+                        user: user?.uid,
+                        currentUser: currentUser?.name
+                      });
+                      showSuccess('Check browser console for debug info');
+                    }}
+                    className="bg-blue-600 hover:bg-blue-700 py-3 rounded-lg font-bold text-white transition-colors"
+                  >
+                    Debug Info
+                  </button>
+                </div>
+              </div>
+
+              <div className="bg-gray-700 p-4 rounded-lg">
+                <h3 className="text-white font-bold mb-2">Admin Password</h3>
+                <p className="text-gray-300 text-sm font-mono bg-gray-800 p-2 rounded">FIFA2023ADMIN</p>
+                <p className="text-gray-400 text-xs mt-2">Save this password for future access</p>
+              </div>
             </div>
           </div>
         </div>

@@ -6,15 +6,15 @@
 const FIFA23_PLAYERS = [
   {
     "name": "Neymar",
-    "rating": 92,
+    "rating": 89,
     "position": "LW",
     "imageUrl": "https://cdn.sofifa.net/players/190/871/19_120.png",
-    "pace": 92,
-    "shooting": 84,
-    "passing": 83,
-    "dribbling": 95,
-    "defending": 32,
-    "physicality": 59,
+    "pace": 87,
+    "shooting": 83,
+    "passing": 85,
+    "dribbling": 93,
+    "defending": 37,
+    "physicality": 61,
     "isSold": false
   },
   {

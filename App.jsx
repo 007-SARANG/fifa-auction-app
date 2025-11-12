@@ -1019,6 +1019,7 @@ function App() {
       
       const bid = parseInt(bidAmount);
       const basePrice = auction.basePrice || 0;
+      const playerRating = auction.currentPlayer?.rating || 0;
       
       if (!bid || bid <= 0 || isNaN(bid)) {
         showError('Please enter a valid bid amount');
@@ -1033,6 +1034,40 @@ function App() {
       if (bid <= auction.currentBid) {
         showError('Bid must be higher than current bid');
         return;
+      }
+      
+      // Enforce bid increments based on player rating
+      let minIncrement = 1; // Default for any player
+      let incrementMultiple = 1;
+      
+      if (playerRating >= 85) {
+        // Premium players (85+): 10M increments
+        minIncrement = 10;
+        incrementMultiple = 10;
+      } else if (playerRating >= 78) {
+        // Regular (83-84) and Free picks (78-82): 5M increments
+        minIncrement = 5;
+        incrementMultiple = 5;
+      }
+      
+      if (minIncrement > 1) {
+        const bidDifference = bid - auction.currentBid;
+        
+        // Check if bid increases by at least the minimum increment
+        if (bidDifference < minIncrement) {
+          const ratingCategory = playerRating >= 85 ? '85+' : '78-84';
+          showError(`For ${ratingCategory} rated players, bids must increase by at least ${minIncrement}M. Current bid: ${auction.currentBid}M, minimum next bid: ${auction.currentBid + minIncrement}M`);
+          return;
+        }
+        
+        // Check if bid is in proper increments from base price
+        const incrementFromBase = bid - basePrice;
+        if (incrementFromBase % incrementMultiple !== 0) {
+          const ratingCategory = playerRating >= 85 ? '85+' : '78-84';
+          const suggestedBid = Math.ceil((bid - basePrice) / incrementMultiple) * incrementMultiple + basePrice;
+          showError(`For ${ratingCategory} rated players, bids must be in multiples of ${incrementMultiple}M from base price (${basePrice}M). Try: ${suggestedBid}M`);
+          return;
+        }
       }
       
       if (bid > currentUser.budget) {
@@ -1724,15 +1759,31 @@ function App() {
                   <div className="bg-gray-700 rounded-lg p-4">
                     <h3 className="text-lg font-bold mb-4">Place Your Bid</h3>
                     
+                    {/* Show bid increment rule based on player rating */}
+                    {auction.currentPlayer?.rating >= 85 ? (
+                      <div className="mb-3 p-2 bg-yellow-900 bg-opacity-30 border border-yellow-600 rounded text-yellow-200 text-sm">
+                        ⭐ <strong>Premium Player (85+):</strong> Bids must be in increments of 10M (e.g., {auction.currentBid}M → {auction.currentBid + 10}M)
+                      </div>
+                    ) : auction.currentPlayer?.rating >= 78 ? (
+                      <div className="mb-3 p-2 bg-blue-900 bg-opacity-30 border border-blue-600 rounded text-blue-200 text-sm">
+                        💎 <strong>Regular Player (78+):</strong> Bids must be in increments of 5M (e.g., {auction.currentBid}M → {auction.currentBid + 5}M)
+                      </div>
+                    ) : null}
+                    
                     <div className="flex gap-4">
                       <input
                         type="number"
                         value={bidAmount}
                         onChange={(e) => setBidAmount(e.target.value)}
-                        placeholder={`Min: ${Math.max(auction.basePrice || 0, auction.currentBid + 1)}M`}
+                        placeholder={auction.currentPlayer?.rating >= 85 
+                          ? `Min: ${auction.currentBid + 10}M` 
+                          : auction.currentPlayer?.rating >= 78
+                          ? `Min: ${auction.currentBid + 5}M`
+                          : `Min: ${Math.max(auction.basePrice || 0, auction.currentBid + 1)}M`}
                         className="flex-1 bg-gray-600 text-white p-3 rounded-lg border border-gray-500 focus:border-green-400 focus:outline-none"
                         min={Math.max(auction.basePrice || 0, auction.currentBid + 1)}
                         max={currentUser.budget}
+                        step={auction.currentPlayer?.rating >= 85 ? 10 : auction.currentPlayer?.rating >= 78 ? 5 : 1}
                         onKeyPress={(e) => e.key === 'Enter' && placeBid()}
                       />
                       
@@ -1754,9 +1805,28 @@ function App() {
                     
                     <div className="mt-3 text-sm text-gray-400">
                       <p>Quick bids: 
-                        <button onClick={() => setBidAmount(String(Math.max(auction.basePrice || 0, auction.currentBid + 5)))} className="ml-2 px-2 py-1 bg-gray-600 hover:bg-gray-500 rounded">+5M</button>
-                        <button onClick={() => setBidAmount(String(Math.max(auction.basePrice || 0, auction.currentBid + 10)))} className="ml-2 px-2 py-1 bg-gray-600 hover:bg-gray-500 rounded">+10M</button>
-                        <button onClick={() => setBidAmount(String(Math.max(auction.basePrice || 0, auction.currentBid + 20)))} className="ml-2 px-2 py-1 bg-gray-600 hover:bg-gray-500 rounded">+20M</button>
+                        {auction.currentPlayer?.rating >= 85 ? (
+                          // Premium players (85+): 10M, 20M, 50M
+                          <>
+                            <button onClick={() => setBidAmount(String(auction.currentBid + 10))} className="ml-2 px-2 py-1 bg-gray-600 hover:bg-gray-500 rounded">+10M</button>
+                            <button onClick={() => setBidAmount(String(auction.currentBid + 20))} className="ml-2 px-2 py-1 bg-gray-600 hover:bg-gray-500 rounded">+20M</button>
+                            <button onClick={() => setBidAmount(String(auction.currentBid + 50))} className="ml-2 px-2 py-1 bg-gray-600 hover:bg-gray-500 rounded">+50M</button>
+                          </>
+                        ) : auction.currentPlayer?.rating >= 78 ? (
+                          // Regular and Free picks (78+): 5M, 10M, 25M
+                          <>
+                            <button onClick={() => setBidAmount(String(auction.currentBid + 5))} className="ml-2 px-2 py-1 bg-gray-600 hover:bg-gray-500 rounded">+5M</button>
+                            <button onClick={() => setBidAmount(String(auction.currentBid + 10))} className="ml-2 px-2 py-1 bg-gray-600 hover:bg-gray-500 rounded">+10M</button>
+                            <button onClick={() => setBidAmount(String(auction.currentBid + 25))} className="ml-2 px-2 py-1 bg-gray-600 hover:bg-gray-500 rounded">+25M</button>
+                          </>
+                        ) : (
+                          // Other players: 1M, 5M, 10M
+                          <>
+                            <button onClick={() => setBidAmount(String(auction.currentBid + 1))} className="ml-2 px-2 py-1 bg-gray-600 hover:bg-gray-500 rounded">+1M</button>
+                            <button onClick={() => setBidAmount(String(auction.currentBid + 5))} className="ml-2 px-2 py-1 bg-gray-600 hover:bg-gray-500 rounded">+5M</button>
+                            <button onClick={() => setBidAmount(String(auction.currentBid + 10))} className="ml-2 px-2 py-1 bg-gray-600 hover:bg-gray-500 rounded">+10M</button>
+                          </>
+                        )}
                       </p>
                     </div>
                   </div>

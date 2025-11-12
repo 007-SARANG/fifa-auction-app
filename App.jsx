@@ -1183,12 +1183,22 @@ function App() {
       
       const auctionRef = doc(db, 'auctions', auctionRoomId);
       
-      if (auction.highestBidder && auction.highestBidder !== 'system') {
+      // Get fresh auction data from Firebase to avoid stale state
+      const freshAuctionDoc = await getDoc(auctionRef);
+      const freshAuction = freshAuctionDoc.data();
+      
+      console.log('Fresh auction data:', {
+        highestBidder: freshAuction.highestBidder,
+        currentBid: freshAuction.currentBid,
+        playerName: freshAuction.currentPlayer?.name
+      });
+      
+      if (freshAuction.highestBidder && freshAuction.highestBidder !== 'system') {
         // Player sold to a user
-        console.log('Player sold to:', auction.highestBidder);
+        console.log('Player sold to:', freshAuction.highestBidder);
         
         await runTransaction(db, async (transaction) => {
-          const winnerRef = doc(db, 'users', auction.highestBidder);
+          const winnerRef = doc(db, 'users', freshAuction.highestBidder);
           
           // IMPORTANT: All reads must come BEFORE all writes in Firestore transactions
           // Read 1: Get winner data
@@ -1206,35 +1216,35 @@ function App() {
           const currentSoldPlayers = auctionDoc.data().soldPlayers || [];
           
           // Validate budget
-          if (winnerData.budget < auction.currentBid) {
+          if (winnerData.budget < freshAuction.currentBid) {
             throw new Error('Winner does not have enough budget');
           }
           
           // Now do all writes
           // Write 1: Update winner's budget and team
           transaction.update(winnerRef, {
-            budget: winnerData.budget - auction.currentBid,
-            team: [...(winnerData.team || []), auction.currentPlayer]
+            budget: winnerData.budget - freshAuction.currentBid,
+            team: [...(winnerData.team || []), freshAuction.currentPlayer]
           });
           
           // Write 2: Update auction status and add to sold players list
           transaction.update(auctionRef, {
             status: 'sold',
             timer: 0,
-            soldPlayers: [...currentSoldPlayers, auction.currentPlayer]
+            soldPlayers: [...currentSoldPlayers, freshAuction.currentPlayer]
           });
         });
         
-        const winnerName = users.find(u => u.id === auction.highestBidder)?.name || 'Unknown';
+        const winnerName = users.find(u => u.id === freshAuction.highestBidder)?.name || 'Unknown';
         
         // Add activity log for the purchase
         try {
           await addActivityLog(
             'purchase',
-            `${winnerName} bought ${auction.currentPlayer.name} for ${auction.currentBid}M`,
-            auction.currentPlayer.name,
-            auction.currentBid,
-            auction.highestBidder,
+            `${winnerName} bought ${freshAuction.currentPlayer.name} for ${freshAuction.currentBid}M`,
+            freshAuction.currentPlayer.name,
+            freshAuction.currentBid,
+            freshAuction.highestBidder,
             winnerName
           );
         } catch (logError) {
@@ -1242,7 +1252,7 @@ function App() {
           // Don't throw - log failure shouldn't stop the auction
         }
         
-        showSuccess(`${auction.currentPlayer.name} sold to ${winnerName} for ${auction.currentBid}M!`);
+        showSuccess(`${freshAuction.currentPlayer.name} sold to ${winnerName} for ${freshAuction.currentBid}M!`);
         
         // Check if auction should continue
         const minTeamSize = Math.min(...users.map(u => (u.team || []).length));
@@ -1256,31 +1266,31 @@ function App() {
         }
       } else {
         // Player unsold - still need to add to soldPlayers to prevent re-selection
-        console.log('Player went unsold');
+        console.log('Player went unsold - no highest bidder found');
+        console.log('Fresh auction highest bidder:', freshAuction.highestBidder);
         
         // Get current sold players and add this unsold player to the list
-        const auctionDoc = await getDoc(auctionRef);
-        const currentSoldPlayers = auctionDoc.data()?.soldPlayers || [];
+        const currentSoldPlayers = freshAuction.soldPlayers || [];
         
         await updateDoc(auctionRef, {
           status: 'unsold',
           timer: 0,
-          soldPlayers: [...currentSoldPlayers, auction.currentPlayer] // Add to list to prevent re-selection
+          soldPlayers: [...currentSoldPlayers, freshAuction.currentPlayer] // Add to list to prevent re-selection
         });
         
         // Add activity log for unsold player
         try {
           await addActivityLog(
             'auction_end',
-            `${auction.currentPlayer.name} went unsold`,
-            auction.currentPlayer.name
+            `${freshAuction.currentPlayer.name} went unsold`,
+            freshAuction.currentPlayer.name
           );
         } catch (logError) {
           console.error('Failed to add activity log:', logError);
           // Don't throw - log failure shouldn't stop the auction
         }
         
-        showSuccess(`${auction.currentPlayer.name} went unsold!`);
+        showSuccess(`${freshAuction.currentPlayer.name} went unsold!`);
       }
       
       console.log('✅ endAuction completed successfully');

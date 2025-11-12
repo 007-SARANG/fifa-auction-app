@@ -397,7 +397,7 @@ function App() {
         isActive = false;
       };
     }
-  }, [auction?.status, auctionRoomId, isAdmin, timer]); // Added timer back to dependencies
+  }, [auction?.status, auctionRoomId, isAdmin]); // Removed timer from dependencies to prevent infinite loop
 
   // User setup functions
   const submitUserName = async () => {
@@ -1581,41 +1581,81 @@ function App() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-900 text-white">
-      {/* Header */}
-      <header className="bg-gray-800 p-4 shadow-lg">
-        <div className="container mx-auto flex justify-between items-center">
-          <div>
-            <h1 className="text-2xl font-bold text-green-400">FIFA 23 Friends Auction</h1>
-            <p className="text-gray-300 text-sm">{auction?.roomName || 'Auction Room'}</p>
+    <div className="min-h-screen bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 text-white">
+      {/* Header - Mobile Responsive */}
+      <header className="bg-gray-800 shadow-lg sticky top-0 z-50 border-b border-gray-700">
+        <div className="container mx-auto px-3 py-3 md:px-6 md:py-4">
+          {/* Mobile Header */}
+          <div className="flex md:hidden justify-between items-center">
+            <div className="flex-1">
+              <h1 className="text-lg font-bold text-green-400 truncate">FIFA Auction</h1>
+              <p className="text-gray-400 text-xs truncate">{auction?.roomName || 'Room'}</p>
+            </div>
+            <div className="flex items-center gap-2">
+              <div className="text-right">
+                <div className="text-xs text-gray-300 truncate max-w-[80px]">{currentUser?.name}</div>
+                <div className="text-green-400 font-bold text-sm">{currentUser?.budget || 0}M</div>
+              </div>
+            </div>
           </div>
-          <div className="flex items-center gap-3">
+          
+          {/* Desktop Header */}
+          <div className="hidden md:flex justify-between items-center">
+            <div>
+              <h1 className="text-2xl font-bold text-green-400">FIFA 23 Friends Auction</h1>
+              <p className="text-gray-300 text-sm">{auction?.roomName || 'Auction Room'}</p>
+            </div>
+            <div className="flex items-center gap-3">
+              <button
+                onClick={() => setShowTeamView(true)}
+                disabled={!currentUser}
+                className="bg-blue-600 hover:bg-blue-700 disabled:bg-gray-600 disabled:cursor-not-allowed px-4 py-2 rounded-lg text-white text-sm font-medium transition-colors"
+              >
+                My Team ({currentUser?.team?.length || 0}/11)
+              </button>
+              <button
+                onClick={() => setShowLogsView(true)}
+                className="bg-purple-600 hover:bg-purple-700 px-4 py-2 rounded-lg text-white text-sm font-medium transition-colors"
+              >
+                Activity Logs
+              </button>
+              <button
+                onClick={leaveAuctionRoom}
+                className="bg-red-600 hover:bg-red-700 px-4 py-2 rounded-lg text-white text-sm font-medium transition-colors"
+              >
+                Leave Room
+              </button>
+              <div className="text-sm text-right">
+                <div className="text-gray-300">
+                  {currentUser?.name}
+                  {isAdmin && <span className="ml-2 px-2 py-1 bg-yellow-600 text-black text-xs rounded font-bold">HOST</span>}
+                </div>
+                <div className="text-green-400 font-mono font-bold">{currentUser?.budget || 0}M</div>
+              </div>
+            </div>
+          </div>
+          
+          {/* Mobile Action Buttons */}
+          <div className="flex md:hidden gap-2 mt-3">
             <button
               onClick={() => setShowTeamView(true)}
               disabled={!currentUser}
-              className="bg-blue-600 hover:bg-blue-700 disabled:bg-gray-600 disabled:cursor-not-allowed px-4 py-2 rounded-lg text-white text-sm font-medium transition-colors"
+              className="flex-1 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-600 px-3 py-2 rounded-lg text-white text-xs font-medium"
             >
-              My Team ({currentUser?.team?.length || 0}/11)
+              Team ({currentUser?.team?.length || 0})
             </button>
             <button
               onClick={() => setShowLogsView(true)}
-              className="bg-purple-600 hover:bg-purple-700 px-4 py-2 rounded-lg text-white text-sm font-medium transition-colors"
+              className="flex-1 bg-purple-600 hover:bg-purple-700 px-3 py-2 rounded-lg text-white text-xs font-medium"
             >
-              Activity Logs
+              Logs
             </button>
             <button
               onClick={leaveAuctionRoom}
-              className="bg-red-600 hover:bg-red-700 px-4 py-2 rounded-lg text-white text-sm font-medium transition-colors"
+              className="flex-1 bg-red-600 hover:bg-red-700 px-3 py-2 rounded-lg text-white text-xs font-medium"
             >
-              Leave Room
+              Leave
             </button>
-            <div className="text-sm text-right">
-              <div className="text-gray-300">
-                {currentUser?.name}
-                {isAdmin && <span className="ml-2 px-2 py-1 bg-yellow-600 text-black text-xs rounded font-bold">HOST</span>}
-              </div>
-              <div className="text-green-400 font-mono">{currentUser?.budget || 0}M</div>
-            </div>
           </div>
         </div>
       </header>
@@ -1632,119 +1672,132 @@ function App() {
         </div>
       )}
 
-      <div className="container mx-auto p-4">
-        <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
+      <div className="container mx-auto px-2 py-3 md:p-6 max-w-7xl">
+        <div className="grid grid-cols-1 lg:grid-cols-4 gap-3 md:gap-6">
           {/* Main Auction Area */}
           <div className="lg:col-span-3">
             {auction?.currentPlayer ? (
-              <div className="bg-gray-800 rounded-lg p-6 mb-6">
+              <div className="bg-gray-800 rounded-lg shadow-2xl p-3 md:p-6 mb-4 md:mb-6 border border-gray-700">
                 {/* Player Card */}
-                <div className="flex flex-col md:flex-row gap-6 mb-6">
-                  <div className="flex-shrink-0">
-                    <img 
-                      src={auction.currentPlayer.imageUrl} 
-                      alt={auction.currentPlayer.name}
-                      className="w-48 h-64 object-cover rounded-lg mx-auto"
-                      onError={(e) => {
-                        e.target.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(auction.currentPlayer.name)}&size=200&background=1f2937&color=ffffff&format=png&bold=true`;
-                      }}
-                    />
+                <div className="flex flex-col md:flex-row gap-4 md:gap-6 mb-4 md:mb-6">
+                  {/* Player Image */}
+                  <div className="flex-shrink-0 mx-auto md:mx-0">
+                    <div className="relative">
+                      <img 
+                        src={auction.currentPlayer.imageUrl} 
+                        alt={auction.currentPlayer.name}
+                        className="w-32 h-40 md:w-48 md:h-64 object-cover rounded-lg shadow-lg ring-2 ring-green-500"
+                        onError={(e) => {
+                          e.target.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(auction.currentPlayer.name)}&size=200&background=1f2937&color=ffffff&format=png&bold=true`;
+                        }}
+                      />
+                      {/* Rating Badge */}
+                      <div className="absolute -top-2 -right-2 bg-yellow-500 text-black font-bold text-lg md:text-xl rounded-full w-10 h-10 md:w-12 md:h-12 flex items-center justify-center shadow-lg border-2 border-yellow-300">
+                        {auction.currentPlayer.rating}
+                      </div>
+                    </div>
                   </div>
                   
                   <div className="flex-1">
-                    <h2 className="text-3xl font-bold text-green-400 mb-2">
+                    <h2 className="text-2xl md:text-3xl font-bold text-green-400 mb-2 text-center md:text-left">
                       {auction.currentPlayer.name}
                     </h2>
                     
                     {/* Phase and Base Price Information */}
-                    <div className="mb-4 p-3 bg-gray-700 rounded-lg">
-                      <div className="flex justify-between items-center">
-                        <span className="text-yellow-400 font-bold">
+                    <div className="mb-3 md:mb-4 p-2 md:p-3 bg-gradient-to-r from-gray-700 to-gray-600 rounded-lg shadow-inner">
+                      <div className="flex flex-col sm:flex-row justify-between items-center gap-2">
+                        <span className="text-yellow-400 font-bold text-sm md:text-base">
                           {getPhaseDescription(auction.currentPhase || 'premium')}
                         </span>
                         {auction.basePrice > 0 && (
-                          <span className="text-red-400 font-bold">
+                          <span className="text-red-400 font-bold text-sm md:text-base">
                             Base Price: {auction.basePrice}M
                           </span>
                         )}
                         {auction.basePrice === 0 && (
-                          <span className="text-green-400 font-bold">
-                            FREE PICK!
+                          <span className="text-green-400 font-bold text-lg animate-pulse">
+                            🎁 FREE PICK!
                           </span>
                         )}
                       </div>
                     </div>
                     
-                    <div className="space-y-3 mb-4">
+                    <div className="space-y-2 md:space-y-3 mb-3 md:mb-4">
                       {/* Basic Info */}
-                      <div className="grid grid-cols-2 gap-4">
-                        <div>
-                          <p className="text-gray-300">Overall: <span className="text-yellow-400 font-bold">{auction.currentPlayer.rating}</span></p>
-                          <p className="text-gray-300">Position: <span className="text-blue-400">{auction.currentPlayer.position}</span></p>
-                          <p className="text-gray-300">Team: <span className="text-white">{auction.currentPlayer.team || auction.currentPlayer.club || 'N/A'}</span></p>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 md:gap-4">
+                        <div className="bg-gray-700 rounded-lg p-2 md:p-3">
+                          <p className="text-gray-400 text-xs mb-1">Position & Team</p>
+                          <p className="text-blue-400 font-bold text-lg">{auction.currentPlayer.position}</p>
+                          <p className="text-gray-300 text-sm">{auction.currentPlayer.team || auction.currentPlayer.club || 'N/A'}</p>
                         </div>
                         
                         {/* Top Stats from your dataset */}
                         {auction.currentPlayer.topStats && (
-                          <div className="text-sm">
-                            <p className="text-gray-400 font-semibold mb-1">Top Stats:</p>
-                            <p className="text-green-400">{auction.currentPlayer.topStats}</p>
+                          <div className="bg-gray-700 rounded-lg p-2 md:p-3">
+                            <p className="text-gray-400 text-xs font-semibold mb-1">Top Stats:</p>
+                            <p className="text-green-400 text-xs md:text-sm font-mono">{auction.currentPlayer.topStats}</p>
                           </div>
                         )}
                       </div>
                       
                       {/* Specialities */}
                       {auction.currentPlayer.specialities && (
-                        <div className="bg-gray-800 rounded p-2">
-                          <p className="text-gray-400 text-xs font-semibold">Style:</p>
-                          <p className="text-purple-400 text-sm">{auction.currentPlayer.specialities}</p>
+                        <div className="bg-gradient-to-r from-purple-900 to-purple-800 rounded-lg p-2 md:p-3 border border-purple-600">
+                          <p className="text-purple-300 text-xs font-semibold mb-1">⚡ Specialities:</p>
+                          <p className="text-purple-100 text-sm">{auction.currentPlayer.specialities}</p>
                         </div>
                       )}
                       
                       {/* Why Get Them */}
                       {auction.currentPlayer.whyGetThem && (
-                        <div className="bg-gray-800 rounded p-2">
-                          <p className="text-gray-400 text-xs font-semibold">Why Get Them:</p>
-                          <p className="text-gray-200 text-sm">{auction.currentPlayer.whyGetThem}</p>
+                        <div className="bg-gradient-to-r from-green-900 to-green-800 rounded-lg p-2 md:p-3 border border-green-600">
+                          <p className="text-green-300 text-xs font-semibold mb-1">💰 Why Get Them:</p>
+                          <p className="text-green-100 text-xs md:text-sm">{auction.currentPlayer.whyGetThem}</p>
                         </div>
                       )}
                       
                       {/* Tactical Significance */}
                       {auction.currentPlayer.tacticalSignificance && (
-                        <div className="bg-gray-800 rounded p-2">
-                          <p className="text-gray-400 text-xs font-semibold">Tactical Role:</p>
-                          <p className="text-blue-300 text-sm">{auction.currentPlayer.tacticalSignificance}</p>
+                        <div className="bg-gradient-to-r from-blue-900 to-blue-800 rounded-lg p-2 md:p-3 border border-blue-600">
+                          <p className="text-blue-300 text-xs font-semibold mb-1">🎯 Tactical Role:</p>
+                          <p className="text-blue-100 text-xs md:text-sm">{auction.currentPlayer.tacticalSignificance}</p>
                         </div>
                       )}
                     </div>
                   </div>
                 </div>
 
-                {/* Auction Info */}
-                <div className="bg-gray-700 rounded-lg p-4 mb-6">
-                  <div className="flex justify-between items-center mb-4">
-                    <div>
-                      <h3 className="text-xl font-bold">Current Highest Bid</h3>
-                      <p className="text-2xl text-green-400">{auction.currentBid}M</p>
+                {/* Auction Info - Mobile Optimized */}
+                <div className="bg-gradient-to-br from-gray-700 to-gray-800 rounded-lg shadow-xl p-3 md:p-4 mb-4 md:mb-6 border border-gray-600">
+                  <div className="grid grid-cols-2 gap-3 md:gap-4 mb-3 md:mb-4">
+                    {/* Current Bid */}
+                    <div className="bg-gray-800 rounded-lg p-3 text-center">
+                      <h3 className="text-xs md:text-sm font-semibold text-gray-400 mb-1">Current Bid</h3>
+                      <p className="text-2xl md:text-3xl font-bold text-green-400">{auction.currentBid}M</p>
                       {auction.highestBidder && (
-                        <p className="text-gray-300">
-                          by {users.find(u => u.id === auction.highestBidder)?.name || 'Unknown'}
+                        <p className="text-xs md:text-sm text-gray-300 truncate mt-1">
+                          {users.find(u => u.id === auction.highestBidder)?.name || 'Unknown'}
                         </p>
                       )}
                     </div>
                     
-                    <div className="text-center">
-                      <h3 className="text-xl font-bold">Time Left</h3>
-                      <p className={`text-3xl font-bold ${timer <= 5 ? 'text-red-400' : 'text-yellow-400'}`}>
+                    {/* Timer */}
+                    <div className="bg-gray-800 rounded-lg p-3 text-center">
+                      <h3 className="text-xs md:text-sm font-semibold text-gray-400 mb-1">Time Left</h3>
+                      <p className={`text-3xl md:text-4xl font-bold ${
+                        timer <= 5 ? 'text-red-400 animate-pulse' : 
+                        timer <= 10 ? 'text-orange-400' : 
+                        'text-yellow-400'
+                      }`}>
                         {timer}s
                       </p>
                     </div>
                   </div>
 
-                  {/* Status */}
+                  {/* Status Badge */}
                   <div className="text-center">
-                    <span className={`inline-block px-4 py-2 rounded-full text-sm font-bold ${
-                      auction.status === 'bidding' ? 'bg-green-600' :
+                    <span className={`inline-block px-4 md:px-6 py-2 rounded-full text-xs md:text-sm font-bold shadow-lg ${
+                      auction.status === 'bidding' ? 'bg-green-600 animate-pulse' :
                       auction.status === 'sold' ? 'bg-blue-600' :
                       auction.status === 'unsold' ? 'bg-red-600' :
                       'bg-gray-600'
@@ -1754,23 +1807,56 @@ function App() {
                   </div>
                 </div>
 
-                {/* Bidding Controls */}
+                {/* PROMINENT SOLD/UNSOLD BANNER */}
+                {auction.status === 'sold' && (
+                  <div className="mt-4 bg-gradient-to-r from-blue-600 via-blue-500 to-blue-600 rounded-xl p-6 md:p-8 text-center shadow-2xl border-4 border-blue-400 animate-pulse">
+                    <h2 className="text-3xl md:text-5xl font-black text-white mb-2 drop-shadow-lg">
+                      🎉 SOLD! 🎉
+                    </h2>
+                    <p className="text-xl md:text-3xl font-bold text-blue-100 mb-1">
+                      {auction.currentPlayer.name}
+                    </p>
+                    <p className="text-lg md:text-2xl font-semibold text-white">
+                      Sold to: <span className="text-yellow-300 font-black">{users.find(u => u.id === auction.highestBidder)?.name || 'Unknown'}</span>
+                    </p>
+                    <p className="text-2xl md:text-4xl font-black text-green-300 mt-2">
+                      💰 {auction.currentBid}M
+                    </p>
+                  </div>
+                )}
+
+                {auction.status === 'unsold' && (
+                  <div className="mt-4 bg-gradient-to-r from-red-600 via-red-500 to-red-600 rounded-xl p-6 md:p-8 text-center shadow-2xl border-4 border-red-400 animate-pulse">
+                    <h2 className="text-3xl md:text-5xl font-black text-white mb-2 drop-shadow-lg">
+                      ❌ UNSOLD ❌
+                    </h2>
+                    <p className="text-xl md:text-3xl font-bold text-red-100">
+                      {auction.currentPlayer.name}
+                    </p>
+                    <p className="text-lg md:text-xl font-semibold text-white mt-2">
+                      No bids received
+                    </p>
+                  </div>
+                )}
+
+                {/* Bidding Controls - Mobile Optimized */}
                 {auction.status === 'bidding' && !(auction.foldedUsers || []).includes(user.uid) && (
-                  <div className="bg-gray-700 rounded-lg p-4">
-                    <h3 className="text-lg font-bold mb-4">Place Your Bid</h3>
+                  <div className="bg-gradient-to-br from-gray-700 to-gray-800 rounded-lg shadow-xl p-3 md:p-4 border border-gray-600">
+                    <h3 className="text-base md:text-lg font-bold mb-3 md:mb-4 text-center md:text-left">💰 Place Your Bid</h3>
                     
                     {/* Show bid increment rule based on player rating */}
                     {auction.currentPlayer?.rating >= 85 ? (
-                      <div className="mb-3 p-2 bg-yellow-900 bg-opacity-30 border border-yellow-600 rounded text-yellow-200 text-sm">
-                        ⭐ <strong>Premium Player (85+):</strong> Bids must be in increments of 10M (e.g., {auction.currentBid}M → {auction.currentBid + 10}M)
+                      <div className="mb-3 p-2 bg-yellow-900 bg-opacity-40 border border-yellow-500 rounded-lg text-yellow-200 text-xs md:text-sm">
+                        ⭐ <strong>Premium (85+):</strong> +10M increments ({auction.currentBid}M → {auction.currentBid + 10}M)
                       </div>
                     ) : auction.currentPlayer?.rating >= 78 ? (
-                      <div className="mb-3 p-2 bg-blue-900 bg-opacity-30 border border-blue-600 rounded text-blue-200 text-sm">
-                        💎 <strong>Regular Player (78+):</strong> Bids must be in increments of 5M (e.g., {auction.currentBid}M → {auction.currentBid + 5}M)
+                      <div className="mb-3 p-2 bg-blue-900 bg-opacity-40 border border-blue-500 rounded-lg text-blue-200 text-xs md:text-sm">
+                        💎 <strong>Regular (78+):</strong> +5M increments ({auction.currentBid}M → {auction.currentBid + 5}M)
                       </div>
                     ) : null}
                     
-                    <div className="flex gap-4">
+                    {/* Mobile: Stack buttons vertically */}
+                    <div className="flex flex-col sm:flex-row gap-2 md:gap-3 mb-3">
                       <input
                         type="number"
                         value={bidAmount}
@@ -1780,7 +1866,7 @@ function App() {
                           : auction.currentPlayer?.rating >= 78
                           ? `Min: ${auction.currentBid + 5}M`
                           : `Min: ${Math.max(auction.basePrice || 0, auction.currentBid + 1)}M`}
-                        className="flex-1 bg-gray-600 text-white p-3 rounded-lg border border-gray-500 focus:border-green-400 focus:outline-none"
+                        className="flex-1 bg-gray-600 text-white p-3 md:p-3 rounded-lg border-2 border-gray-500 focus:border-green-400 focus:outline-none text-base md:text-lg font-bold"
                         min={Math.max(auction.basePrice || 0, auction.currentBid + 1)}
                         max={currentUser.budget}
                         step={auction.currentPlayer?.rating >= 85 ? 10 : auction.currentPlayer?.rating >= 78 ? 5 : 1}
@@ -1790,71 +1876,72 @@ function App() {
                       <button
                         onClick={placeBid}
                         disabled={!bidAmount || isNaN(parseInt(bidAmount)) || parseInt(bidAmount) < Math.max(auction.basePrice || 0, auction.currentBid + 1) || parseInt(bidAmount) > currentUser.budget}
-                        className="bg-green-600 hover:bg-green-700 disabled:bg-gray-600 disabled:cursor-not-allowed px-6 py-3 rounded-lg font-bold transition-colors whitespace-nowrap"
+                        className="bg-green-600 hover:bg-green-700 disabled:bg-gray-600 disabled:cursor-not-allowed px-6 py-3 rounded-lg font-bold transition-all text-sm md:text-base shadow-lg hover:shadow-xl transform hover:scale-105 active:scale-95"
                       >
-                        Place Bid
+                        💵 Place Bid
                       </button>
                       
                       <button
                         onClick={foldPlayer}
-                        className="bg-red-600 hover:bg-red-700 px-6 py-3 rounded-lg font-bold transition-colors whitespace-nowrap"
+                        className="bg-red-600 hover:bg-red-700 px-4 md:px-6 py-3 rounded-lg font-bold transition-colors whitespace-nowrap shadow-lg hover:shadow-xl"
                       >
                         Fold
                       </button>
                     </div>
                     
-                    <div className="mt-3 text-sm text-gray-400">
-                      <p>Quick bids: 
+                    <div className="mt-3 md:mt-4">
+                      <p className="text-xs md:text-sm text-gray-400 mb-2">Quick bids:</p>
+                      <div className="flex flex-wrap gap-2">
                         {auction.currentPlayer?.rating >= 85 ? (
                           // Premium players (85+): 10M, 20M, 50M
                           <>
-                            <button onClick={() => setBidAmount(String(auction.currentBid + 10))} className="ml-2 px-2 py-1 bg-gray-600 hover:bg-gray-500 rounded">+10M</button>
-                            <button onClick={() => setBidAmount(String(auction.currentBid + 20))} className="ml-2 px-2 py-1 bg-gray-600 hover:bg-gray-500 rounded">+20M</button>
-                            <button onClick={() => setBidAmount(String(auction.currentBid + 50))} className="ml-2 px-2 py-1 bg-gray-600 hover:bg-gray-500 rounded">+50M</button>
+                            <button onClick={() => setBidAmount(String(auction.currentBid + 10))} className="flex-1 min-w-[80px] px-3 py-2 bg-gradient-to-r from-gray-700 to-gray-600 hover:from-gray-600 hover:to-gray-500 rounded-lg transition-all shadow-md text-sm md:text-base font-semibold">+10M</button>
+                            <button onClick={() => setBidAmount(String(auction.currentBid + 20))} className="flex-1 min-w-[80px] px-3 py-2 bg-gradient-to-r from-gray-700 to-gray-600 hover:from-gray-600 hover:to-gray-500 rounded-lg transition-all shadow-md text-sm md:text-base font-semibold">+20M</button>
+                            <button onClick={() => setBidAmount(String(auction.currentBid + 50))} className="flex-1 min-w-[80px] px-3 py-2 bg-gradient-to-r from-gray-700 to-gray-600 hover:from-gray-600 hover:to-gray-500 rounded-lg transition-all shadow-md text-sm md:text-base font-semibold">+50M</button>
                           </>
                         ) : auction.currentPlayer?.rating >= 78 ? (
                           // Regular and Free picks (78+): 5M, 10M, 25M
                           <>
-                            <button onClick={() => setBidAmount(String(auction.currentBid + 5))} className="ml-2 px-2 py-1 bg-gray-600 hover:bg-gray-500 rounded">+5M</button>
-                            <button onClick={() => setBidAmount(String(auction.currentBid + 10))} className="ml-2 px-2 py-1 bg-gray-600 hover:bg-gray-500 rounded">+10M</button>
-                            <button onClick={() => setBidAmount(String(auction.currentBid + 25))} className="ml-2 px-2 py-1 bg-gray-600 hover:bg-gray-500 rounded">+25M</button>
+                            <button onClick={() => setBidAmount(String(auction.currentBid + 5))} className="flex-1 min-w-[80px] px-3 py-2 bg-gradient-to-r from-gray-700 to-gray-600 hover:from-gray-600 hover:to-gray-500 rounded-lg transition-all shadow-md text-sm md:text-base font-semibold">+5M</button>
+                            <button onClick={() => setBidAmount(String(auction.currentBid + 10))} className="flex-1 min-w-[80px] px-3 py-2 bg-gradient-to-r from-gray-700 to-gray-600 hover:from-gray-600 hover:to-gray-500 rounded-lg transition-all shadow-md text-sm md:text-base font-semibold">+10M</button>
+                            <button onClick={() => setBidAmount(String(auction.currentBid + 25))} className="flex-1 min-w-[80px] px-3 py-2 bg-gradient-to-r from-gray-700 to-gray-600 hover:from-gray-600 hover:to-gray-500 rounded-lg transition-all shadow-md text-sm md:text-base font-semibold">+25M</button>
                           </>
                         ) : (
                           // Other players: 1M, 5M, 10M
                           <>
-                            <button onClick={() => setBidAmount(String(auction.currentBid + 1))} className="ml-2 px-2 py-1 bg-gray-600 hover:bg-gray-500 rounded">+1M</button>
-                            <button onClick={() => setBidAmount(String(auction.currentBid + 5))} className="ml-2 px-2 py-1 bg-gray-600 hover:bg-gray-500 rounded">+5M</button>
-                            <button onClick={() => setBidAmount(String(auction.currentBid + 10))} className="ml-2 px-2 py-1 bg-gray-600 hover:bg-gray-500 rounded">+10M</button>
+                            <button onClick={() => setBidAmount(String(auction.currentBid + 1))} className="flex-1 min-w-[80px] px-3 py-2 bg-gradient-to-r from-gray-700 to-gray-600 hover:from-gray-600 hover:to-gray-500 rounded-lg transition-all shadow-md text-sm md:text-base font-semibold">+1M</button>
+                            <button onClick={() => setBidAmount(String(auction.currentBid + 5))} className="flex-1 min-w-[80px] px-3 py-2 bg-gradient-to-r from-gray-700 to-gray-600 hover:from-gray-600 hover:to-gray-500 rounded-lg transition-all shadow-md text-sm md:text-base font-semibold">+5M</button>
+                            <button onClick={() => setBidAmount(String(auction.currentBid + 10))} className="flex-1 min-w-[80px] px-3 py-2 bg-gradient-to-r from-gray-700 to-gray-600 hover:from-gray-600 hover:to-gray-500 rounded-lg transition-all shadow-md text-sm md:text-base font-semibold">+10M</button>
                           </>
                         )}
-                      </p>
+                      </div>
                     </div>
                   </div>
                 )}
 
                 {(auction.foldedUsers || []).includes(user.uid) && (
-                  <div className="bg-gray-700 rounded-lg p-4 text-center">
-                    <p className="text-red-400 font-bold">You have folded on this player</p>
+                  <div className="bg-gradient-to-r from-red-900/30 to-gray-800/30 border border-red-600/50 rounded-lg p-4 text-center shadow-lg">
+                    <p className="text-red-400 font-bold text-sm md:text-base">You have folded on this player</p>
                   </div>
                 )}
               </div>
             ) : (
-              <div className="bg-gray-800 rounded-lg p-8 text-center">
-                <h2 className="text-2xl font-bold mb-4">No Active Auction</h2>
-                <p className="text-gray-300 mb-6">Waiting for the next player to be put up for auction...</p>
+              <div className="bg-gradient-to-br from-gray-800 to-gray-900 rounded-lg p-6 md:p-8 text-center shadow-xl border border-gray-700">
+                <h2 className="text-xl md:text-2xl font-bold mb-3 md:mb-4">No Active Auction</h2>
+                <p className="text-gray-300 text-sm md:text-base mb-4 md:mb-6">Waiting for the next player to be put up for auction...</p>
               </div>
             )}
 
             {/* Admin Controls */}
             {isAdmin && (
-              <div className="bg-gray-800 rounded-lg p-4">
-                <h3 className="text-lg font-bold mb-4">Admin Controls</h3>
+              <div className="bg-gradient-to-br from-gray-800 to-gray-900 rounded-lg p-3 md:p-4 shadow-xl border border-gray-700">
+                <h3 className="text-base md:text-lg font-bold mb-3 md:mb-4 text-blue-400">Admin Controls</h3>
                 
-                <div className="flex flex-col gap-3">
+                <div className="flex flex-col gap-2 md:gap-3">
                   <button
                     onClick={startNextAuction}
                     disabled={auction?.status === 'bidding' || auction?.isComplete}
-                    className="bg-blue-600 hover:bg-blue-700 disabled:bg-gray-600 disabled:cursor-not-allowed px-6 py-3 rounded-lg font-bold transition-colors"
+                    className="bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 disabled:from-gray-600 disabled:to-gray-700 disabled:cursor-not-allowed px-4 md:px-6 py-2.5 md:py-3 rounded-lg font-bold transition-all shadow-lg text-sm md:text-base"
                   >
                     {auction?.isComplete ? 'Auction Complete' : auction?.currentPlayer ? 'Next Player' : 'Start Auction'}
                   </button>
@@ -1862,14 +1949,14 @@ function App() {
                   <button
                     onClick={endAuction}
                     disabled={auction?.status !== 'bidding'}
-                    className="bg-yellow-600 hover:bg-yellow-700 disabled:bg-gray-600 disabled:cursor-not-allowed px-6 py-3 rounded-lg font-bold transition-colors"
+                    className="bg-gradient-to-r from-yellow-600 to-yellow-700 hover:from-yellow-700 hover:to-yellow-800 disabled:from-gray-600 disabled:to-gray-700 disabled:cursor-not-allowed px-4 md:px-6 py-2.5 md:py-3 rounded-lg font-bold transition-all shadow-lg text-sm md:text-base"
                   >
                     End Current Auction
                   </button>
                   
                   <button
                     onClick={clearAllData}
-                    className="bg-red-600 hover:bg-red-700 px-6 py-3 rounded-lg font-bold transition-colors"
+                    className="bg-gradient-to-r from-red-600 to-red-700 hover:from-red-700 hover:to-red-800 px-4 md:px-6 py-2.5 md:py-3 rounded-lg font-bold transition-all shadow-lg text-sm md:text-base"
                   >
                     🗑️ Clear All Data
                   </button>
@@ -1879,50 +1966,50 @@ function App() {
           </div>
 
           {/* Sidebar */}
-          <div className="lg:col-span-1">
+          <div className="lg:col-span-1 space-y-4 md:space-y-6">
             {/* Current User Status */}
-            <div className="bg-gray-800 rounded-lg p-4 mb-6">
-              <h3 className="text-lg font-bold mb-4">Your Status</h3>
+            <div className="bg-gradient-to-br from-gray-800 to-gray-900 rounded-lg p-3 md:p-4 shadow-xl border border-gray-700">
+              <h3 className="text-base md:text-lg font-bold mb-3 md:mb-4 text-green-400">Your Status</h3>
               
-              <div className="mb-4">
-                <p className="text-gray-300">Budget Remaining</p>
-                <p className="text-2xl font-bold text-green-400">{currentUser.budget}M</p>
+              <div className="mb-3 md:mb-4 bg-gray-700/50 rounded-lg p-3">
+                <p className="text-gray-300 text-xs md:text-sm">Budget Remaining</p>
+                <p className="text-xl md:text-2xl font-bold text-green-400">{currentUser.budget}M</p>
               </div>
               
               <div>
-                <p className="text-gray-300 mb-2">Your Team ({currentUser.team.length})</p>
+                <p className="text-gray-300 mb-2 text-xs md:text-sm font-semibold">Your Team ({currentUser.team.length}/11)</p>
                 {currentUser.team.length > 0 ? (
-                  <div className="space-y-2 max-h-64 overflow-y-auto">
+                  <div className="space-y-2 max-h-48 md:max-h-64 overflow-y-auto pr-1 scrollbar-thin scrollbar-thumb-gray-600 scrollbar-track-gray-800">
                     {currentUser.team.map((player, index) => (
-                      <div key={index} className="bg-gray-700 p-2 rounded text-sm">
+                      <div key={index} className="bg-gradient-to-r from-gray-700 to-gray-600 p-2 md:p-2.5 rounded-lg text-xs md:text-sm shadow-md">
                         <p className="font-bold">{player.name}</p>
                         <p className="text-gray-300">{player.position} - {player.rating} OVR</p>
                       </div>
                     ))}
                   </div>
                 ) : (
-                  <p className="text-gray-400 text-sm">No players yet</p>
+                  <p className="text-gray-400 text-xs md:text-sm italic">No players yet</p>
                 )}
               </div>
             </div>
 
             {/* All Participants */}
-            <div className="bg-gray-800 rounded-lg p-4">
-              <h3 className="text-lg font-bold mb-4">Participants ({users.length})</h3>
+            <div className="bg-gradient-to-br from-gray-800 to-gray-900 rounded-lg p-3 md:p-4 shadow-xl border border-gray-700">
+              <h3 className="text-base md:text-lg font-bold mb-3 md:mb-4 text-blue-400">Participants ({users.length})</h3>
               
-              <div className="space-y-3">
+              <div className="space-y-2 md:space-y-3 max-h-64 md:max-h-96 overflow-y-auto pr-1 scrollbar-thin scrollbar-thumb-gray-600 scrollbar-track-gray-800">
                 {users.map((participant) => (
-                  <div key={participant.id} className="bg-gray-700 p-3 rounded">
+                  <div key={participant.id} className="bg-gradient-to-r from-gray-700 to-gray-600 p-2.5 md:p-3 rounded-lg shadow-md hover:shadow-lg transition-shadow">
                     <div className="flex justify-between items-center mb-1">
-                      <p className="font-bold text-sm">{participant.name}</p>
-                      <span className={`w-2 h-2 rounded-full ${participant.isOnline ? 'bg-green-400' : 'bg-gray-400'}`}></span>
+                      <p className="font-bold text-xs md:text-sm">{participant.name}</p>
+                      <span className={`w-2 h-2 md:w-2.5 md:h-2.5 rounded-full ${participant.isOnline ? 'bg-green-400 shadow-lg shadow-green-400/50' : 'bg-gray-400'}`}></span>
                     </div>
                     
-                    <p className="text-green-400 text-sm">Budget: {participant.budget}M</p>
-                    <p className="text-gray-300 text-xs">Team: {participant.team.length} players</p>
+                    <p className="text-green-400 text-xs md:text-sm font-semibold">Budget: {participant.budget}M</p>
+                    <p className="text-gray-300 text-xs">Team: {participant.team.length}/11 players</p>
                     
                     {auction?.highestBidder === participant.id && (
-                      <p className="text-yellow-400 text-xs font-bold">Current Highest Bidder</p>
+                      <p className="text-yellow-400 text-xs font-bold mt-1 bg-yellow-400/10 px-2 py-0.5 rounded">🔥 Highest Bidder</p>
                     )}
                   </div>
                 ))}
@@ -1934,45 +2021,55 @@ function App() {
 
       {/* Team View Modal */}
       {showTeamView && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-          <div className="bg-gray-800 rounded-lg max-w-4xl w-full max-h-[80vh] overflow-y-auto">
-            <div className="flex justify-between items-center p-6 border-b border-gray-700">
-              <h2 className="text-2xl font-bold text-green-400">My Team ({currentUser?.team?.length || 0}/11)</h2>
+        <div className="fixed inset-0 bg-black bg-opacity-70 backdrop-blur-sm flex items-center justify-center p-3 md:p-4 z-50">
+          <div className="bg-gradient-to-br from-gray-800 to-gray-900 rounded-xl max-w-4xl w-full max-h-[90vh] overflow-y-auto shadow-2xl border border-gray-700">
+            <div className="sticky top-0 bg-gray-800/95 backdrop-blur-sm flex justify-between items-center p-4 md:p-6 border-b border-gray-700 z-10">
+              <h2 className="text-lg md:text-2xl font-bold text-green-400">My Team ({currentUser?.team?.length || 0}/11)</h2>
               <button
                 onClick={() => setShowTeamView(false)}
-                className="text-gray-400 hover:text-white text-2xl"
+                className="text-gray-400 hover:text-white text-2xl md:text-3xl w-8 h-8 md:w-10 md:h-10 flex items-center justify-center hover:bg-gray-700 rounded-lg transition-colors"
               >
                 ×
               </button>
             </div>
             
-            <div className="p-6">
-              <div className="mb-4">
-                <p className="text-gray-300">Budget Remaining: <span className="text-green-400 font-bold">{currentUser?.budget || 0}M</span></p>
-                <p className="text-gray-300">Total Spent: <span className="text-red-400 font-bold">{((auction?.initialBudget || 1000) - (currentUser?.budget || 0))}M</span></p>
-              </div>              {currentUser?.team && currentUser.team.length > 0 ? (
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            <div className="p-3 md:p-6">
+              <div className="mb-4 md:mb-6 grid grid-cols-2 gap-2 md:gap-4">
+                <div className="bg-gradient-to-r from-green-900/30 to-gray-800 p-3 md:p-4 rounded-lg border border-green-600/30">
+                  <p className="text-gray-300 text-xs md:text-sm">Budget Remaining</p>
+                  <p className="text-green-400 font-bold text-lg md:text-2xl">{currentUser?.budget || 0}M</p>
+                </div>
+                <div className="bg-gradient-to-r from-red-900/30 to-gray-800 p-3 md:p-4 rounded-lg border border-red-600/30">
+                  <p className="text-gray-300 text-xs md:text-sm">Total Spent</p>
+                  <p className="text-red-400 font-bold text-lg md:text-2xl">{((auction?.initialBudget || 1000) - (currentUser?.budget || 0))}M</p>
+                </div>
+              </div>
+              
+              {currentUser?.team && currentUser.team.length > 0 ? (
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 md:gap-4">
                   {currentUser.team.map((player, index) => (
-                    <div key={index} className="bg-gray-700 rounded-lg p-4">
+                    <div key={index} className="bg-gradient-to-br from-gray-700 to-gray-600 rounded-lg p-3 md:p-4 shadow-lg hover:shadow-xl transition-shadow">
                       <img 
                         src={player.imageUrl} 
                         alt={player.name}
-                        className="w-full h-32 object-cover rounded-lg mb-3"
+                        className="w-full h-28 md:h-32 object-cover rounded-lg mb-2 md:mb-3"
                         onError={(e) => {
                           e.target.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(player.name)}&size=200&background=1f2937&color=ffffff&format=png&bold=true`;
                         }}
                       />
-                      <h3 className="font-bold text-white text-sm">{player.name}</h3>
+                      <h3 className="font-bold text-white text-xs md:text-sm">{player.name}</h3>
                       <p className="text-gray-300 text-xs">{player.club}</p>
-                      <p className="text-green-400 text-sm">Rating: {player.rating}</p>
-                      <p className="text-blue-400 text-xs">{player.position}</p>
+                      <div className="flex items-center justify-between mt-1 md:mt-2">
+                        <p className="text-green-400 text-xs md:text-sm font-semibold">Rating: {player.rating}</p>
+                        <p className="text-blue-400 text-xs font-semibold">{player.position}</p>
+                      </div>
                     </div>
                   ))}
                 </div>
               ) : (
-                <div className="text-center py-8">
-                  <p className="text-gray-400">No players in your team yet</p>
-                  <p className="text-gray-500 text-sm">Start bidding to build your team!</p>
+                <div className="text-center py-8 md:py-12">
+                  <p className="text-gray-400 text-sm md:text-base">No players in your team yet</p>
+                  <p className="text-gray-500 text-xs md:text-sm mt-2">Start bidding to build your team!</p>
                 </div>
               )}
             </div>
@@ -1982,36 +2079,36 @@ function App() {
 
       {/* Activity Logs Modal */}
       {showLogsView && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-          <div className="bg-gray-800 rounded-lg max-w-4xl w-full max-h-[80vh] overflow-y-auto">
-            <div className="flex justify-between items-center p-6 border-b border-gray-700">
-              <h2 className="text-2xl font-bold text-purple-400">Activity Logs</h2>
+        <div className="fixed inset-0 bg-black bg-opacity-70 backdrop-blur-sm flex items-center justify-center p-3 md:p-4 z-50">
+          <div className="bg-gradient-to-br from-gray-800 to-gray-900 rounded-xl max-w-4xl w-full max-h-[90vh] overflow-y-auto shadow-2xl border border-gray-700">
+            <div className="sticky top-0 bg-gray-800/95 backdrop-blur-sm flex justify-between items-center p-4 md:p-6 border-b border-gray-700 z-10">
+              <h2 className="text-lg md:text-2xl font-bold text-purple-400">Activity Logs</h2>
               <button
                 onClick={() => setShowLogsView(false)}
-                className="text-gray-400 hover:text-white text-2xl"
+                className="text-gray-400 hover:text-white text-2xl md:text-3xl w-8 h-8 md:w-10 md:h-10 flex items-center justify-center hover:bg-gray-700 rounded-lg transition-colors"
               >
                 ×
               </button>
             </div>
             
-            <div className="p-6">
+            <div className="p-3 md:p-6">
               {activityLogs && activityLogs.length > 0 ? (
-                <div className="space-y-3">
+                <div className="space-y-2 md:space-y-3">
                   {activityLogs.map((log, index) => (
-                    <div key={log.id || index} className={`p-3 rounded-lg ${
-                      log.type === 'purchase' ? 'bg-green-900 border-l-4 border-green-500' :
-                      log.type === 'bid' ? 'bg-blue-900 border-l-4 border-blue-500' :
-                      log.type === 'auction_start' ? 'bg-yellow-900 border-l-4 border-yellow-500' :
-                      'bg-gray-700 border-l-4 border-gray-500'
+                    <div key={log.id || index} className={`p-3 md:p-4 rounded-lg shadow-md ${
+                      log.type === 'purchase' ? 'bg-gradient-to-r from-green-900/50 to-gray-800 border-l-4 border-green-500' :
+                      log.type === 'bid' ? 'bg-gradient-to-r from-blue-900/50 to-gray-800 border-l-4 border-blue-500' :
+                      log.type === 'auction_start' ? 'bg-gradient-to-r from-yellow-900/50 to-gray-800 border-l-4 border-yellow-500' :
+                      'bg-gradient-to-r from-gray-700 to-gray-600 border-l-4 border-gray-500'
                     }`}>
-                      <div className="flex justify-between items-start">
-                        <div>
-                          <p className="text-white text-sm">{log.message}</p>
+                      <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start gap-1 sm:gap-2">
+                        <div className="flex-1">
+                          <p className="text-white text-xs md:text-sm leading-relaxed">{log.message}</p>
                           {log.amount && (
-                            <p className="text-green-400 text-xs font-mono">{log.amount}M</p>
+                            <p className="text-green-400 text-xs md:text-sm font-mono font-bold mt-1">{log.amount}M</p>
                           )}
                         </div>
-                        <span className="text-gray-400 text-xs">
+                        <span className="text-gray-400 text-xs whitespace-nowrap">
                           {new Date(log.timestamp).toLocaleTimeString()}
                         </span>
                       </div>
@@ -2019,9 +2116,9 @@ function App() {
                   ))}
                 </div>
               ) : (
-                <div className="text-center py-8">
-                  <p className="text-gray-400">No activity logs yet</p>
-                  <p className="text-gray-500 text-sm">Auction activity will appear here</p>
+                <div className="text-center py-8 md:py-12">
+                  <p className="text-gray-400 text-sm md:text-base">No activity logs yet</p>
+                  <p className="text-gray-500 text-xs md:text-sm mt-2">Auction activity will appear here</p>
                 </div>
               )}
             </div>
@@ -2031,44 +2128,44 @@ function App() {
 
       {/* Super Admin Panel Modal */}
       {showAdminPanel && isSuperAdmin && (
-        <div className="fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center p-4 z-50">
-          <div className="bg-gray-800 rounded-lg max-w-2xl w-full border-4 border-red-600">
-            <div className="flex justify-between items-center p-6 border-b border-red-600 bg-red-900">
-              <h2 className="text-2xl font-bold text-white">🛠️ Super Admin Control Panel</h2>
+        <div className="fixed inset-0 bg-black bg-opacity-80 backdrop-blur-sm flex items-center justify-center p-3 md:p-4 z-50">
+          <div className="bg-gradient-to-br from-gray-800 to-gray-900 rounded-xl max-w-2xl w-full border-4 border-red-600 shadow-2xl">
+            <div className="flex justify-between items-center p-4 md:p-6 border-b border-red-600 bg-gradient-to-r from-red-900 to-red-800">
+              <h2 className="text-lg md:text-2xl font-bold text-white">🛠️ Super Admin Control</h2>
               <button
                 onClick={() => setShowAdminPanel(false)}
-                className="text-white hover:text-red-200 text-2xl font-bold"
+                className="text-white hover:text-red-200 text-2xl md:text-3xl font-bold w-8 h-8 md:w-10 md:h-10 flex items-center justify-center hover:bg-red-800 rounded-lg transition-colors"
               >
                 ×
               </button>
             </div>
             
-            <div className="p-6 space-y-4">
-              <div className="bg-red-950 border border-red-600 p-4 rounded-lg">
-                <h3 className="text-white font-bold mb-2">⚠️ Warning</h3>
-                <p className="text-red-200 text-sm">
+            <div className="p-4 md:p-6 space-y-3 md:space-y-4">
+              <div className="bg-red-950 border border-red-600 p-3 md:p-4 rounded-lg">
+                <h3 className="text-white font-bold mb-2 text-sm md:text-base">⚠️ Warning</h3>
+                <p className="text-red-200 text-xs md:text-sm">
                   You have full administrative control. Use these features carefully as they cannot be undone.
                 </p>
               </div>
 
-              <div className="bg-gray-700 p-4 rounded-lg">
-                <h3 className="text-white font-bold mb-3">Database Statistics</h3>
-                <div className="space-y-2 text-sm">
+              <div className="bg-gradient-to-r from-gray-700 to-gray-600 p-3 md:p-4 rounded-lg shadow-lg">
+                <h3 className="text-white font-bold mb-3 text-sm md:text-base">Database Statistics</h3>
+                <div className="space-y-2 text-xs md:text-sm">
                   <p className="text-gray-300">Total Rooms: <span className="text-green-400 font-bold">{auctionRooms.length}</span></p>
                   <p className="text-gray-300">Total Users in DB: <span className="text-blue-400 font-bold">{users.length}</span></p>
                   <p className="text-gray-300">Activity Logs: <span className="text-purple-400 font-bold">{activityLogs.length}</span></p>
                 </div>
               </div>
 
-              <div className="space-y-3">
+              <div className="space-y-2 md:space-y-3">
                 <button
                   onClick={deleteAllRooms}
-                  className="w-full bg-red-600 hover:bg-red-700 py-4 rounded-lg font-bold text-white transition-colors text-lg"
+                  className="w-full bg-gradient-to-r from-red-600 to-red-700 hover:from-red-700 hover:to-red-800 py-3 md:py-4 rounded-lg font-bold text-white transition-all text-base md:text-lg shadow-lg"
                 >
                   🗑️ DELETE ALL ROOMS & DATA
                 </button>
 
-                <div className="grid grid-cols-2 gap-3">
+                <div className="grid grid-cols-2 gap-2 md:gap-3">
                   <button
                     onClick={() => {
                       setShowAdminPanel(false);
@@ -2076,7 +2173,7 @@ function App() {
                       setIsAdmin(false);
                       showSuccess('Super Admin mode deactivated');
                     }}
-                    className="bg-gray-600 hover:bg-gray-700 py-3 rounded-lg font-bold text-white transition-colors"
+                    className="bg-gradient-to-r from-gray-600 to-gray-700 hover:from-gray-700 hover:to-gray-800 py-2.5 md:py-3 rounded-lg font-bold text-white transition-all text-sm md:text-base shadow-md"
                   >
                     Exit Admin Mode
                   </button>

@@ -40,8 +40,8 @@ const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 const auth = getAuth(app);
 
-// Import the official FIFA 23 male players database (1,521 players, 78+ rating)
-import ALL_FIFA_PLAYERS from './fifa23-players-official.js';
+// Import the curated FIFA player database (183 players with detailed stats)
+import ALL_FIFA_PLAYERS from './player-database-new.js';
 
 // Real player photo mapping for better images
 const PLAYER_PHOTO_MAP = {
@@ -107,8 +107,8 @@ function getPlayerPhoto(playerName) {
   return sources[0]; // Return primary source
 }
 
-// Use the official FIFA 23 male players database (1,521 players, 78+ rating)
-// Distribution: 89 premium (85+), 101 regular (83-84), 1,331 free picks (78-82)
+// Use the curated FIFA player database (183 players with detailed tactical info)
+// Distribution: 12 elite (90+), 58 premium (85-89), 104 regular (80-84), 9 prospects (<80)
 const SAMPLE_PLAYERS = ALL_FIFA_PLAYERS.map(player => ({
   ...player,
   imageUrl: player.imageUrl || getPlayerPhoto(player.name) // Use official photo or fallback
@@ -334,11 +334,16 @@ function App() {
 
   // Timer countdown - OPTIMIZED: Local timer, sync only every 5 seconds
   useEffect(() => {
-    if (timer > 0 && auction?.status === 'bidding' && auctionRoomId && isAdmin) {
+    // Only start timer if we're in bidding state with a positive timer
+    if (auction?.status === 'bidding' && auctionRoomId && isAdmin && timer > 0) {
       let localTimer = timer;
       let syncCounter = 0;
+      let isActive = true; // Flag to prevent state updates after unmount
+      let hasEnded = false; // Prevent multiple endAuction calls
       
       const interval = setInterval(async () => {
+        if (!isActive || hasEnded) return;
+        
         localTimer--;
         syncCounter++;
         setTimer(localTimer);
@@ -358,15 +363,41 @@ function App() {
         }
         
         // End auction when timer reaches 0
-        if (localTimer === 0) {
+        if (localTimer === 0 && !hasEnded) {
+          hasEnded = true; // Prevent multiple calls
           clearInterval(interval);
-          await endAuction();
+          isActive = false;
+          
+          console.log('⏰ Timer reached 0, ending auction...');
+          
+          // Call endAuction and handle any errors
+          try {
+            await endAuction();
+            console.log('✅ Auction ended successfully');
+          } catch (error) {
+            console.error('❌ Error in timer endAuction call:', error);
+            showError('Failed to end auction automatically. Please use the "End Current Auction" button.');
+            
+            // Force update the auction status to prevent stuck state
+            try {
+              const auctionRef = doc(db, 'auctions', auctionRoomId);
+              await updateDoc(auctionRef, { 
+                status: 'unsold',
+                timer: 0 
+              });
+            } catch (updateError) {
+              console.error('Failed to force update auction status:', updateError);
+            }
+          }
         }
       }, 1000);
 
-      return () => clearInterval(interval);
+      return () => {
+        clearInterval(interval);
+        isActive = false;
+      };
     }
-  }, [timer, auction?.status, auctionRoomId, isAdmin]);
+  }, [auction?.status, auctionRoomId, isAdmin, timer]); // Added timer back to dependencies
 
   // User setup functions
   const submitUserName = async () => {
@@ -1063,6 +1094,36 @@ function App() {
       });
       
       showSuccess('You have folded on this player');
+      
+      // Check if all users have folded (excluding admin if they're not bidding)
+      const activeUsers = users.filter(u => u.auctionRoomId === auctionRoomId);
+      const totalUsers = activeUsers.length;
+      
+      console.log('Fold check:', newFoldedUsers.length, 'of', totalUsers, 'users folded');
+      
+      // If all users have folded, automatically end the auction as unsold
+      if (newFoldedUsers.length >= totalUsers && isAdmin) {
+        console.log('All users folded! Auto-ending auction...');
+        setTimeout(async () => {
+          try {
+            await updateDoc(auctionRef, {
+              status: 'unsold',
+              timer: 0
+            });
+            
+            // Add activity log
+            await addActivityLog(
+              'auction_end',
+              `${auction.currentPlayer.name} went unsold (all users folded)`,
+              auction.currentPlayer.name
+            );
+            
+            showSuccess(`All users folded! ${auction.currentPlayer.name} went unsold.`);
+          } catch (error) {
+            console.error('Error auto-ending auction after all folds:', error);
+          }
+        }, 1500); // Short delay so users see the fold message
+      }
     } catch (error) {
       console.error('Error folding:', error);
       showError('Failed to fold');
@@ -1072,40 +1133,56 @@ function App() {
   const endAuction = async () => {
     try {
       if (!auction || !auction.currentPlayer) {
+        console.error('endAuction called with no auction or player');
         showError('No active auction to end');
         return;
       }
+      
+      // Prevent multiple simultaneous calls
+      if (auction.status !== 'bidding') {
+        console.log('Auction already ended, status:', auction.status);
+        return;
+      }
+      
+      console.log('Ending auction for:', auction.currentPlayer.name, 'Status:', auction.status);
       
       const auctionRef = doc(db, 'auctions', auctionRoomId);
       
       if (auction.highestBidder && auction.highestBidder !== 'system') {
         // Player sold to a user
+        console.log('Player sold to:', auction.highestBidder);
+        
         await runTransaction(db, async (transaction) => {
           const winnerRef = doc(db, 'users', auction.highestBidder);
+          
+          // IMPORTANT: All reads must come BEFORE all writes in Firestore transactions
+          // Read 1: Get winner data
           const winnerDoc = await transaction.get(winnerRef);
           
+          // Read 2: Get current auction data
+          const auctionDoc = await transaction.get(auctionRef);
+          
+          // Now validate the reads
           if (!winnerDoc.exists()) {
             throw new Error('Winner not found');
           }
           
           const winnerData = winnerDoc.data();
+          const currentSoldPlayers = auctionDoc.data().soldPlayers || [];
           
           // Validate budget
           if (winnerData.budget < auction.currentBid) {
             throw new Error('Winner does not have enough budget');
           }
           
-          // Update winner's budget and team
+          // Now do all writes
+          // Write 1: Update winner's budget and team
           transaction.update(winnerRef, {
             budget: winnerData.budget - auction.currentBid,
             team: [...(winnerData.team || []), auction.currentPlayer]
           });
           
-          // Get current auction data to update sold players
-          const auctionDoc = await transaction.get(auctionRef);
-          const currentSoldPlayers = auctionDoc.data().soldPlayers || [];
-          
-          // Update auction status and add to sold players list
+          // Write 2: Update auction status and add to sold players list
           transaction.update(auctionRef, {
             status: 'sold',
             timer: 0,
@@ -1116,14 +1193,19 @@ function App() {
         const winnerName = users.find(u => u.id === auction.highestBidder)?.name || 'Unknown';
         
         // Add activity log for the purchase
-        await addActivityLog(
-          'purchase',
-          `${winnerName} bought ${auction.currentPlayer.name} for ${auction.currentBid}M`,
-          auction.currentPlayer.name,
-          auction.currentBid,
-          auction.highestBidder,
-          winnerName
-        );
+        try {
+          await addActivityLog(
+            'purchase',
+            `${winnerName} bought ${auction.currentPlayer.name} for ${auction.currentBid}M`,
+            auction.currentPlayer.name,
+            auction.currentBid,
+            auction.highestBidder,
+            winnerName
+          );
+        } catch (logError) {
+          console.error('Failed to add activity log:', logError);
+          // Don't throw - log failure shouldn't stop the auction
+        }
         
         showSuccess(`${auction.currentPlayer.name} sold to ${winnerName} for ${auction.currentBid}M!`);
         
@@ -1132,28 +1214,58 @@ function App() {
         if (minTeamSize >= 11) {
           setTimeout(() => {
             showSuccess('🎉 Auction complete! Everyone has 11 players!');
-            updateDoc(auctionRef, { isComplete: true });
+            updateDoc(auctionRef, { isComplete: true }).catch(err => 
+              console.error('Failed to mark auction complete:', err)
+            );
           }, 2000);
         }
       } else {
-        // Player unsold
+        // Player unsold - still need to add to soldPlayers to prevent re-selection
+        console.log('Player went unsold');
+        
+        // Get current sold players and add this unsold player to the list
+        const auctionDoc = await getDoc(auctionRef);
+        const currentSoldPlayers = auctionDoc.data()?.soldPlayers || [];
+        
+        await updateDoc(auctionRef, {
+          status: 'unsold',
+          timer: 0,
+          soldPlayers: [...currentSoldPlayers, auction.currentPlayer] // Add to list to prevent re-selection
+        });
+        
+        // Add activity log for unsold player
+        try {
+          await addActivityLog(
+            'auction_end',
+            `${auction.currentPlayer.name} went unsold`,
+            auction.currentPlayer.name
+          );
+        } catch (logError) {
+          console.error('Failed to add activity log:', logError);
+          // Don't throw - log failure shouldn't stop the auction
+        }
+        
+        showSuccess(`${auction.currentPlayer.name} went unsold!`);
+      }
+      
+      console.log('✅ endAuction completed successfully');
+    } catch (error) {
+      console.error('❌ Error ending auction:', error);
+      showError('Error ending auction: ' + (error.message || 'Unknown error'));
+      
+      // Try to at least update the status to prevent stuck state
+      try {
+        const auctionRef = doc(db, 'auctions', auctionRoomId);
         await updateDoc(auctionRef, {
           status: 'unsold',
           timer: 0
         });
-        
-        // Add activity log for unsold player
-        await addActivityLog(
-          'auction_end',
-          `${auction.currentPlayer.name} went unsold`,
-          auction.currentPlayer.name
-        );
-        
-        showSuccess(`${auction.currentPlayer.name} went unsold!`);
+        console.log('Forced auction to unsold state after error');
+      } catch (fallbackError) {
+        console.error('Failed to update auction status after error:', fallbackError);
       }
-    } catch (error) {
-      console.error('Error ending auction:', error);
-      showError('Error ending auction: ' + (error.message || 'Unknown error'));
+      
+      throw error; // Re-throw to let caller know it failed
     }
   };
 
@@ -1528,22 +1640,47 @@ function App() {
                       </div>
                     </div>
                     
-                    <div className="grid grid-cols-2 gap-4 mb-4">
-                      <div>
-                        <p className="text-gray-300">Overall: <span className="text-yellow-400 font-bold">{auction.currentPlayer.rating}</span></p>
-                        <p className="text-gray-300">Position: <span className="text-blue-400">{auction.currentPlayer.position}</span></p>
-                        <p className="text-gray-300">Club: <span className="text-white">{auction.currentPlayer.club}</span></p>
-                        <p className="text-gray-300">Nation: <span className="text-white">{auction.currentPlayer.nation}</span></p>
+                    <div className="space-y-3 mb-4">
+                      {/* Basic Info */}
+                      <div className="grid grid-cols-2 gap-4">
+                        <div>
+                          <p className="text-gray-300">Overall: <span className="text-yellow-400 font-bold">{auction.currentPlayer.rating}</span></p>
+                          <p className="text-gray-300">Position: <span className="text-blue-400">{auction.currentPlayer.position}</span></p>
+                          <p className="text-gray-300">Team: <span className="text-white">{auction.currentPlayer.team || auction.currentPlayer.club || 'N/A'}</span></p>
+                        </div>
+                        
+                        {/* Top Stats from your dataset */}
+                        {auction.currentPlayer.topStats && (
+                          <div className="text-sm">
+                            <p className="text-gray-400 font-semibold mb-1">Top Stats:</p>
+                            <p className="text-green-400">{auction.currentPlayer.topStats}</p>
+                          </div>
+                        )}
                       </div>
                       
-                      <div className="grid grid-cols-2 gap-2 text-sm">
-                        <div>PAC: <span className="text-green-400">{auction.currentPlayer.pace}</span></div>
-                        <div>SHO: <span className="text-red-400">{auction.currentPlayer.shooting}</span></div>
-                        <div>PAS: <span className="text-yellow-400">{auction.currentPlayer.passing}</span></div>
-                        <div>DRI: <span className="text-purple-400">{auction.currentPlayer.dribbling}</span></div>
-                        <div>DEF: <span className="text-blue-400">{auction.currentPlayer.defending}</span></div>
-                        <div>PHY: <span className="text-orange-400">{auction.currentPlayer.physicality}</span></div>
-                      </div>
+                      {/* Specialities */}
+                      {auction.currentPlayer.specialities && (
+                        <div className="bg-gray-800 rounded p-2">
+                          <p className="text-gray-400 text-xs font-semibold">Style:</p>
+                          <p className="text-purple-400 text-sm">{auction.currentPlayer.specialities}</p>
+                        </div>
+                      )}
+                      
+                      {/* Why Get Them */}
+                      {auction.currentPlayer.whyGetThem && (
+                        <div className="bg-gray-800 rounded p-2">
+                          <p className="text-gray-400 text-xs font-semibold">Why Get Them:</p>
+                          <p className="text-gray-200 text-sm">{auction.currentPlayer.whyGetThem}</p>
+                        </div>
+                      )}
+                      
+                      {/* Tactical Significance */}
+                      {auction.currentPlayer.tacticalSignificance && (
+                        <div className="bg-gray-800 rounded p-2">
+                          <p className="text-gray-400 text-xs font-semibold">Tactical Role:</p>
+                          <p className="text-blue-300 text-sm">{auction.currentPlayer.tacticalSignificance}</p>
+                        </div>
+                      )}
                     </div>
                   </div>
                 </div>

@@ -1593,15 +1593,15 @@ function App() {
       const auctionRef = doc(db, 'auctions', auctionRoomId);
       const newBidders = [...new Set([...(auction.bidders || []), user.uid])];
       
-      // Get current timer and add 10 seconds (don't reset, just add)
+      // Get current timer and add 10 seconds (capped at 20 seconds max)
       const currentTimer = timer || 0;
-      const newTimer = currentTimer + 10;
+      const newTimer = Math.min(currentTimer + 10, 20);
       
       await updateDoc(auctionRef, {
         currentBid: bid,
         highestBidder: user.uid,
         bidders: newBidders,
-        timer: newTimer // Add 10 seconds to current timer
+        timer: newTimer // Add 10 seconds to current timer (max 20s)
       });
       
       setTimer(newTimer); // Update local state immediately

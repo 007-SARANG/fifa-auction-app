@@ -306,6 +306,31 @@ function App() {
     loadLogs();
   }, [auctionRoomId, showLogsView]);
 
+  // Listener for pending users to detect when they're approved
+  useEffect(() => {
+    if (!user || !pendingRoomId || auctionRoomId) return;
+
+    console.log('Setting up pending approval listener for room:', pendingRoomId);
+    
+    const unsubscribePendingUser = onSnapshot(doc(db, 'users', user.uid), (doc) => {
+      if (doc.exists()) {
+        const userData = doc.data();
+        // If user now has an auctionRoomId matching the pending room, they've been approved
+        if (userData.auctionRoomId === pendingRoomId) {
+          console.log('User approved! Joining room:', pendingRoomId);
+          setPendingRoomId(null);
+          setAuctionRoomId(pendingRoomId);
+          setCurrentUser({ id: doc.id, ...userData });
+          showSuccess('You have been approved! Joining room...');
+        }
+      }
+    });
+
+    return () => {
+      unsubscribePendingUser();
+    };
+  }, [user, pendingRoomId, auctionRoomId]);
+
   // Real-time listeners
   useEffect(() => {
     if (!user || !auctionRoomId) return;

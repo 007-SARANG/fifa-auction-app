@@ -2304,13 +2304,36 @@ function App() {
                           <p className="text-gray-300 text-sm">{auction.currentPlayer.team || auction.currentPlayer.club || 'N/A'}</p>
                         </div>
                         
-                        {/* Top Stats from your dataset */}
-                        {auction.currentPlayer.topStats && (
-                          <div className="bg-gray-700 rounded-lg p-2 md:p-3">
-                            <p className="text-gray-400 text-xs font-semibold mb-1">Top Stats:</p>
-                            <p className="text-green-400 text-xs md:text-sm font-mono">{auction.currentPlayer.topStats}</p>
+                        {/* FIFA 23 Face Stats */}
+                        <div className="bg-gray-700 rounded-lg p-2 md:p-3">
+                          <p className="text-gray-400 text-xs font-semibold mb-1">FIFA 23 Stats:</p>
+                          <div className="grid grid-cols-3 gap-1 text-xs">
+                            <div className="text-center">
+                              <span className="text-yellow-400 font-bold">PAC</span>
+                              <span className="text-white ml-1">{auction.currentPlayer.pace}</span>
+                            </div>
+                            <div className="text-center">
+                              <span className="text-red-400 font-bold">SHO</span>
+                              <span className="text-white ml-1">{auction.currentPlayer.shooting}</span>
+                            </div>
+                            <div className="text-center">
+                              <span className="text-green-400 font-bold">PAS</span>
+                              <span className="text-white ml-1">{auction.currentPlayer.passing}</span>
+                            </div>
+                            <div className="text-center">
+                              <span className="text-purple-400 font-bold">DRI</span>
+                              <span className="text-white ml-1">{auction.currentPlayer.dribbling}</span>
+                            </div>
+                            <div className="text-center">
+                              <span className="text-blue-400 font-bold">DEF</span>
+                              <span className="text-white ml-1">{auction.currentPlayer.defending}</span>
+                            </div>
+                            <div className="text-center">
+                              <span className="text-orange-400 font-bold">PHY</span>
+                              <span className="text-white ml-1">{auction.currentPlayer.physicality}</span>
+                            </div>
                           </div>
-                        )}
+                        </div>
                       </div>
                       
                       {/* Specialities */}

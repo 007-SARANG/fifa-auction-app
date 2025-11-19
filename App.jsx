@@ -160,6 +160,12 @@ function App() {
   
   // Password for user authentication
   const [userPassword, setUserPassword] = useState('');
+  
+  // Join request system
+  const [joinRequests, setJoinRequests] = useState([]);
+  const [showJoinRequests, setShowJoinRequests] = useState(false);
+  const [pendingRoomId, setPendingRoomId] = useState(null);
+  const [customBudgets, setCustomBudgets] = useState({});
 
   // Initialize sample data - OPTIMIZED: Only add players when auction starts
   const initializeSampleData = useCallback(async () => {
@@ -301,6 +307,7 @@ function App() {
         const auctionData = doc.data();
         setAuction(auctionData);
         setTimer(auctionData.timer || 0);
+        setJoinRequests(auctionData.joinRequests || []);
       }
     });
 
@@ -610,7 +617,8 @@ function App() {
         isComplete: false,
         initialBudget: initialBudget,
         currentPhase: 'premium', // Start with premium players (85+)
-        soldPlayers: [] // Track sold players locally instead of Firebase
+        soldPlayers: [], // Track sold players locally instead of Firebase
+        joinRequests: [] // Track join requests
       });
       
       // Create or update user document to join this room
@@ -637,7 +645,7 @@ function App() {
     }
   };
 
-  const joinAuctionRoom = async (room) => {
+  const requestToJoin = async (room) => {
     try {
       if (!room || !room.id) {
         showError('Invalid room');
@@ -654,24 +662,84 @@ function App() {
         return;
       }
       
-      // Create or update user document to join this room
-      const userRef = doc(db, 'users', user.uid);
+      // Check if already requested
+      const auctionRef = doc(db, 'auctions', room.id);
+      const auctionDoc = await getDoc(auctionRef);
+      const existingRequests = auctionDoc.data()?.joinRequests || [];
+      
+      if (existingRequests.some(req => req.userId === user.uid)) {
+        showError('You have already requested to join this room');
+        return;
+      }
+      
+      // Add join request
+      await updateDoc(auctionRef, {
+        joinRequests: [...existingRequests, {
+          userId: user.uid,
+          userName: currentUser.name,
+          requestedAt: Date.now()
+        }]
+      });
+      
+      setPendingRoomId(room.id);
+      showSuccess(`Join request sent to ${room.roomName}! Waiting for host approval...`);
+    } catch (error) {
+      console.error('Error requesting to join:', error);
+      showError('Failed to send join request: ' + error.message);
+    }
+  };
+  
+  const approveJoinRequest = async (request, customBudget) => {
+    try {
+      if (!isAdmin) {
+        showError('Only the host can approve join requests');
+        return;
+      }
+      
+      const budget = customBudget || auction.initialBudget || 1000;
+      
+      // Create user document in auction
+      const userRef = doc(db, 'users', request.userId);
       await setDoc(userRef, {
-        name: currentUser.name,
-        auctionRoomId: room.id,
-        budget: room.initialBudget || 1000,
+        name: request.userName,
+        auctionRoomId: auctionRoomId,
+        budget: budget,
         team: [],
         joinedAt: Date.now()
       }, { merge: true });
       
-      setAuctionRoomId(room.id);
-      setShowAuctionMenu(false);
-      await initializeSampleData();
+      // Remove from join requests
+      const auctionRef = doc(db, 'auctions', auctionRoomId);
+      const updatedRequests = (auction.joinRequests || []).filter(req => req.userId !== request.userId);
+      await updateDoc(auctionRef, {
+        joinRequests: updatedRequests
+      });
       
-      showSuccess(`Joined auction room: ${room.roomName}!`);
+      showSuccess(`${request.userName} has been approved with ${budget}M budget!`);
     } catch (error) {
-      console.error('Error joining room:', error);
-      showError('Failed to join room: ' + error.message);
+      console.error('Error approving join request:', error);
+      showError('Failed to approve request: ' + error.message);
+    }
+  };
+  
+  const rejectJoinRequest = async (request) => {
+    try {
+      if (!isAdmin) {
+        showError('Only the host can reject join requests');
+        return;
+      }
+      
+      // Remove from join requests
+      const auctionRef = doc(db, 'auctions', auctionRoomId);
+      const updatedRequests = (auction.joinRequests || []).filter(req => req.userId !== request.userId);
+      await updateDoc(auctionRef, {
+        joinRequests: updatedRequests
+      });
+      
+      showSuccess(`Join request from ${request.userName} has been rejected`);
+    } catch (error) {
+      console.error('Error rejecting join request:', error);
+      showError('Failed to reject request: ' + error.message);
     }
   };
 
@@ -1633,11 +1701,11 @@ function App() {
                     </div>
                     <div className="flex gap-2">
                       <button
-                        onClick={() => joinAuctionRoom(room)}
-                        disabled={room.isComplete}
-                        className="bg-blue-600 hover:bg-blue-700 disabled:bg-gray-600 disabled:cursor-not-allowed px-4 py-2 rounded-lg font-bold transition-colors"
+                        onClick={() => requestToJoin(room)}
+                        disabled={room.isComplete || pendingRoomId === room.id}
+                        className="bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 disabled:from-gray-600 disabled:to-gray-700 disabled:cursor-not-allowed px-4 py-2 rounded-lg font-bold transition-all shadow-md"
                       >
-                        {room.isComplete ? 'Completed' : 'Join'}
+                        {room.isComplete ? 'Completed' : pendingRoomId === room.id ? '⏳ Pending' : '📨 Request to Join'}
                       </button>
                       {isSuperAdmin && (
                         <button
@@ -1721,6 +1789,14 @@ function App() {
               <p className="text-gray-300 text-sm">🏆 {auction?.roomName || 'Auction Room'}</p>
             </div>
             <div className="flex items-center gap-3">
+              {isAdmin && joinRequests.length > 0 && (
+                <button
+                  onClick={() => setShowJoinRequests(true)}
+                  className="bg-orange-600 hover:bg-orange-700 px-4 py-2 rounded-lg text-white text-sm font-medium transition-colors relative animate-pulse"
+                >
+                  🔔 Join Requests ({joinRequests.length})
+                </button>
+              )}
               <button
                 onClick={() => setShowTeamView(true)}
                 disabled={!currentUser}
@@ -1752,6 +1828,14 @@ function App() {
           
           {/* Mobile Action Buttons */}
           <div className="flex md:hidden gap-2 mt-3">
+            {isAdmin && joinRequests.length > 0 && (
+              <button
+                onClick={() => setShowJoinRequests(true)}
+                className="flex-1 bg-orange-600 hover:bg-orange-700 px-3 py-2 rounded-lg text-white text-xs font-medium animate-pulse"
+              >
+                🔔 ({joinRequests.length})
+              </button>
+            )}
             <button
               onClick={() => setShowTeamView(true)}
               disabled={!currentUser}
@@ -2346,6 +2430,80 @@ function App() {
                 <p className="text-gray-300 text-sm font-mono bg-gray-800 p-2 rounded">FIFA2023ADMIN</p>
                 <p className="text-gray-400 text-xs mt-2">Save this password for future access</p>
               </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Join Requests Modal */}
+      {showJoinRequests && isAdmin && (
+        <div className="fixed inset-0 bg-black bg-opacity-80 backdrop-blur-sm flex items-center justify-center p-3 md:p-4 z-50">
+          <div className="bg-gradient-to-br from-gray-800 to-gray-900 rounded-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto shadow-2xl border border-orange-600">
+            <div className="sticky top-0 bg-gray-800/95 backdrop-blur-sm flex justify-between items-center p-4 md:p-6 border-b border-orange-600 z-10">
+              <h2 className="text-lg md:text-2xl font-bold text-orange-400">🔔 Join Requests ({joinRequests.length})</h2>
+              <button
+                onClick={() => setShowJoinRequests(false)}
+                className="text-gray-400 hover:text-white text-2xl md:text-3xl font-bold w-8 h-8 md:w-10 md:h-10 flex items-center justify-center hover:bg-gray-700 rounded-lg transition-colors"
+              >
+                ×
+              </button>
+            </div>
+            
+            <div className="p-3 md:p-6">
+              {joinRequests && joinRequests.length > 0 ? (
+                <div className="space-y-3 md:space-y-4">
+                  {joinRequests.map((request, index) => (
+                    <div key={request.userId || index} className="bg-gradient-to-r from-gray-700 to-gray-600 rounded-lg p-4 md:p-5 shadow-lg border border-gray-600">
+                      <div className="flex flex-col md:flex-row md:items-center justify-between gap-3">
+                        <div className="flex-1">
+                          <h3 className="font-bold text-white text-lg">{request.userName}</h3>
+                          <p className="text-gray-400 text-xs md:text-sm">
+                            Requested: {new Date(request.requestedAt).toLocaleString()}
+                          </p>
+                        </div>
+                        
+                        <div className="flex flex-col gap-2">
+                          <div className="flex items-center gap-2">
+                            <label className="text-gray-300 text-sm whitespace-nowrap">Budget:</label>
+                            <input
+                              type="number"
+                              value={customBudgets[request.userId] || auction.initialBudget || 1000}
+                              onChange={(e) => setCustomBudgets({
+                                ...customBudgets,
+                                [request.userId]: parseInt(e.target.value) || 0
+                              })}
+                              min="100"
+                              max="5000"
+                              className="w-24 bg-gray-800 text-white p-2 rounded-lg border border-gray-600 focus:border-green-400 focus:outline-none text-sm"
+                            />
+                            <span className="text-gray-400 text-sm">M</span>
+                          </div>
+                          
+                          <div className="flex gap-2">
+                            <button
+                              onClick={() => approveJoinRequest(request, customBudgets[request.userId])}
+                              className="flex-1 bg-gradient-to-r from-green-600 to-green-700 hover:from-green-700 hover:to-green-800 px-4 py-2 rounded-lg font-bold text-white transition-all shadow-md text-sm"
+                            >
+                              ✓ Approve
+                            </button>
+                            <button
+                              onClick={() => rejectJoinRequest(request)}
+                              className="flex-1 bg-gradient-to-r from-red-600 to-red-700 hover:from-red-700 hover:to-red-800 px-4 py-2 rounded-lg font-bold text-white transition-all shadow-md text-sm"
+                            >
+                              ✗ Reject
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="text-center py-8 md:py-12">
+                  <p className="text-gray-400 text-sm md:text-base">No pending join requests</p>
+                  <p className="text-gray-500 text-xs md:text-sm mt-2">Requests will appear here when users try to join</p>
+                </div>
+              )}
             </div>
           </div>
         </div>

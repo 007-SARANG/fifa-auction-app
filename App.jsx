@@ -22,6 +22,7 @@ import {
   signInAnonymously, 
   onAuthStateChanged 
 } from 'firebase/auth';
+import html2canvas from 'html2canvas';
 
 // Firebase configuration - Your actual Firebase project config
 const firebaseConfig = {
@@ -166,6 +167,27 @@ function App() {
   const [showJoinRequests, setShowJoinRequests] = useState(false);
   const [pendingRoomId, setPendingRoomId] = useState(null);
   const [customBudgets, setCustomBudgets] = useState({});
+  
+  // Chat system
+  const [messages, setMessages] = useState([]);
+  const [newMessage, setNewMessage] = useState('');
+  const [showChat, setShowChat] = useState(false);
+  const [unreadMessages, setUnreadMessages] = useState(0);
+  const chatEndRef = useRef(null);
+  
+  // Player card flip animation
+  const [isFlipping, setIsFlipping] = useState(false);
+  const [previousPlayer, setPreviousPlayer] = useState(null);
+  
+  // Reconnection handling
+  const [isOnline, setIsOnline] = useState(navigator.onLine);
+  const [isReconnecting, setIsReconnecting] = useState(false);
+  
+  // Auction history and leaderboard
+  const [showHistory, setShowHistory] = useState(false);
+  const [auctionHistory, setAuctionHistory] = useState([]);
+  const [showLeaderboard, setShowLeaderboard] = useState(false);
+  const [leaderboardData, setLeaderboardData] = useState([]);
 
   // Initialize sample data - OPTIMIZED: Only add players when auction starts
   const initializeSampleData = useCallback(async () => {
@@ -411,6 +433,65 @@ function App() {
       };
     }
   }, [auction?.status, auctionRoomId, isAdmin]); // Removed timer from dependencies to prevent infinite loop
+
+  // Chat messages listener
+  useEffect(() => {
+    if (!auctionRoomId) return;
+    
+    const messagesRef = collection(db, 'auctions', auctionRoomId, 'messages');
+    const messagesQuery = query(messagesRef, orderBy('createdAt', 'asc'), limit(100));
+    
+    const unsubscribe = onSnapshot(messagesQuery, (snapshot) => {
+      const msgs = snapshot.docs.map(doc => ({
+        id: doc.id,
+        ...doc.data()
+      }));
+      
+      setMessages(msgs);
+      
+      // Update unread count if chat is closed
+      if (!showChat && msgs.length > 0) {
+        const lastMsg = msgs[msgs.length - 1];
+        if (lastMsg.userId !== user?.uid) {
+          setUnreadMessages(prev => prev + 1);
+        }
+      }
+      
+      // Auto-scroll to bottom
+      setTimeout(() => chatEndRef.current?.scrollIntoView({ behavior: 'smooth' }), 100);
+    });
+    
+    return () => unsubscribe();
+  }, [auctionRoomId, showChat, user]);
+  
+  // Network status listener
+  useEffect(() => {
+    const handleOnline = () => {
+      setIsOnline(true);
+      setIsReconnecting(false);
+      showSuccess('Connection restored!');
+    };
+    
+    const handleOffline = () => {
+      setIsOnline(false);
+      setIsReconnecting(true);
+    };
+    
+    window.addEventListener('online', handleOnline);
+    window.addEventListener('offline', handleOffline);
+    
+    return () => {
+      window.removeEventListener('online', handleOnline);
+      window.removeEventListener('offline', handleOffline);
+    };
+  }, []);
+  
+  // Reset unread count when chat is opened
+  useEffect(() => {
+    if (showChat) {
+      setUnreadMessages(0);
+    }
+  }, [showChat]);
 
   // User setup functions
   const submitUserName = async () => {
@@ -965,6 +1046,171 @@ function App() {
     }
   };
 
+  // Auction History functions
+  const saveAuctionHistory = async () => {
+    try {
+      const historyData = {
+        auctionId: auctionRoomId,
+        roomName: auction?.roomName || 'Unknown Room',
+        completedAt: new Date(),
+        initialBudget: auction?.initialBudget || 1000,
+        participants: users.map(u => ({
+          name: u.name,
+          budget: u.budget,
+          budgetSpent: (auction?.initialBudget || 1000) - u.budget,
+          team: u.team,
+          teamRating: calculateTeamRating(u.team),
+          teamValue: calculateTeamValue(u.team)
+        })),
+        winner: calculateWinner(users),
+        totalPlayers: users.reduce((sum, u) => sum + u.team.length, 0)
+      };
+      
+      await addDoc(collection(db, 'auctionHistory'), historyData);
+      console.log('Auction history saved');
+    } catch (error) {
+      console.error('Error saving auction history:', error);
+    }
+  };
+  
+  const calculateTeamRating = (team) => {
+    if (!team || team.length === 0) return 0;
+    const totalRating = team.reduce((sum, player) => sum + (player.rating || 0), 0);
+    return Math.round(totalRating / team.length);
+  };
+  
+  const calculateTeamValue = (team) => {
+    if (!team || team.length === 0) return 0;
+    return team.reduce((sum, player) => sum + (player.purchasePrice || 0), 0);
+  };
+  
+  const calculateWinner = (users) => {
+    if (!users || users.length === 0) return null;
+    
+    // Winner is the one with highest team rating
+    let bestUser = users[0];
+    let bestRating = calculateTeamRating(bestUser.team);
+    
+    for (const user of users) {
+      const rating = calculateTeamRating(user.team);
+      if (rating > bestRating) {
+        bestRating = rating;
+        bestUser = user;
+      }
+    }
+    
+    return {
+      name: bestUser.name,
+      teamRating: bestRating,
+      budgetEfficiency: Math.round((bestRating / ((auction?.initialBudget || 1000) - bestUser.budget)) * 100)
+    };
+  };
+
+  // Export Team as Image
+  const exportTeamAsImage = async () => {
+    if (!currentUser || !currentUser.team || currentUser.team.length === 0) {
+      showError('No team to export');
+      return;
+    }
+    
+    try {
+      showSuccess('Generating team image...');
+      
+      // Find the team view element or create temporary one
+      const teamElement = document.getElementById('team-export-view');
+      if (!teamElement) {
+        showError('Please open Team View first, then click export');
+        return;
+      }
+      
+      const canvas = await html2canvas(teamElement, {
+        backgroundColor: '#111827',
+        scale: 2,
+        logging: false
+      });
+      
+      const link = document.createElement('a');
+      link.download = `my-fifa-team-${Date.now()}.png`;
+      link.href = canvas.toDataURL();
+      link.click();
+      
+      showSuccess('Team exported successfully!');
+    } catch (error) {
+      console.error('Error exporting team:', error);
+      showError('Failed to export team');
+    }
+  };
+
+  // Backup/Restore functions
+  const backupAuction = async () => {
+    if (!isAdmin) {
+      showError('Only the host can backup auction data');
+      return;
+    }
+    
+    try {
+      const backupData = {
+        auction: auction,
+        users: users,
+        activityLogs: activityLogs,
+        timestamp: new Date().toISOString(),
+        version: '1.0'
+      };
+      
+      const dataStr = JSON.stringify(backupData, null, 2);
+      const dataBlob = new Blob([dataStr], { type: 'application/json' });
+      const url = URL.createObjectURL(dataBlob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `auction-backup-${auctionRoomId}-${Date.now()}.json`;
+      link.click();
+      URL.revokeObjectURL(url);
+      
+      showSuccess('Auction backup downloaded successfully!');
+    } catch (error) {
+      console.error('Error backing up auction:', error);
+      showError('Failed to backup auction');
+    }
+  };
+  
+  const restoreAuction = async (backupFile) => {
+    if (!isAdmin) {
+      showError('Only the host can restore auction data');
+      return;
+    }
+    
+    try {
+      const reader = new FileReader();
+      reader.onload = async (e) => {
+        try {
+          const backupData = JSON.parse(e.target.result);
+          
+          const confirmed = window.confirm('This will overwrite current auction data. Continue?');
+          if (!confirmed) return;
+          
+          // Restore auction
+          const auctionRef = doc(db, 'auctions', auctionRoomId);
+          await updateDoc(auctionRef, backupData.auction);
+          
+          // Restore users
+          for (const userData of backupData.users) {
+            const userRef = doc(db, 'users', userData.id);
+            await setDoc(userRef, userData);
+          }
+          
+          showSuccess('Auction restored successfully!');
+        } catch (parseError) {
+          console.error('Error parsing backup:', parseError);
+          showError('Invalid backup file');
+        }
+      };
+      reader.readAsText(backupFile);
+    } catch (error) {
+      console.error('Error restoring auction:', error);
+      showError('Failed to restore auction');
+    }
+  };
+
   // Pause/Resume auction functions
   const pauseAuction = async () => {
     if (!isAdmin) {
@@ -1036,6 +1282,104 @@ function App() {
     setTimeout(clearMessages, 3000);
   };
 
+  // Chat functions
+  const sendMessage = async () => {
+    if (!newMessage.trim() || !currentUser || !auctionRoomId) return;
+    
+    try {
+      const messagesRef = collection(db, 'auctions', auctionRoomId, 'messages');
+      await addDoc(messagesRef, {
+        text: newMessage.trim(),
+        userId: user.uid,
+        userName: currentUser.name,
+        timestamp: new Date(),
+        createdAt: Date.now()
+      });
+      
+      setNewMessage('');
+      // Scroll to bottom after sending
+      setTimeout(() => chatEndRef.current?.scrollIntoView({ behavior: 'smooth' }), 100);
+    } catch (error) {
+      console.error('Error sending message:', error);
+      showError('Failed to send message');
+    }
+  };
+  
+  const handleKeyPress = (e) => {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      sendMessage();
+    }
+  };
+  
+  // Confetti effect for 90+ rated players
+  const triggerConfetti = () => {
+    // Create confetti using vanilla JS
+    const count = 200;
+    const defaults = {
+      origin: { y: 0.7 }
+    };
+
+    function fire(particleRatio, opts) {
+      const canvas = document.createElement('canvas');
+      canvas.style.position = 'fixed';
+      canvas.style.top = '0';
+      canvas.style.left = '0';
+      canvas.style.width = '100%';
+      canvas.style.height = '100%';
+      canvas.style.pointerEvents = 'none';
+      canvas.style.zIndex = '9999';
+      document.body.appendChild(canvas);
+      
+      const ctx = canvas.getContext('2d');
+      canvas.width = window.innerWidth;
+      canvas.height = window.innerHeight;
+      
+      const particles = [];
+      for (let i = 0; i < count * particleRatio; i++) {
+        particles.push({
+          x: Math.random() * canvas.width,
+          y: Math.random() * canvas.height - canvas.height,
+          vx: (Math.random() - 0.5) * 10,
+          vy: Math.random() * 3 + 2,
+          color: ['#FFD700', '#FFA500', '#FF6347', '#4169E1', '#32CD32'][Math.floor(Math.random() * 5)],
+          size: Math.random() * 8 + 4
+        });
+      }
+      
+      function animate() {
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        
+        particles.forEach((p, index) => {
+          ctx.fillStyle = p.color;
+          ctx.fillRect(p.x, p.y, p.size, p.size);
+          
+          p.x += p.vx;
+          p.y += p.vy;
+          p.vy += 0.2;
+          
+          if (p.y > canvas.height) {
+            particles.splice(index, 1);
+          }
+        });
+        
+        if (particles.length > 0) {
+          requestAnimationFrame(animate);
+        } else {
+          document.body.removeChild(canvas);
+        }
+      }
+      
+      animate();
+    }
+
+    fire(0.25, { spread: 26, startVelocity: 55 });
+    fire(0.2, { spread: 60 });
+    fire(0.35, { spread: 100, decay: 0.91, scalar: 0.8 });
+    fire(0.1, { spread: 120, startVelocity: 25, decay: 0.92, scalar: 1.2 });
+    fire(0.1, { spread: 120, startVelocity: 45 });
+  };
+
   // Auction functions
   const startNextAuction = async () => {
     try {
@@ -1059,11 +1403,15 @@ function App() {
       // Check if auction should end (everyone has 11 players)
       const minTeamSize = Math.min(...users.map(u => (u.team || []).length));
       if (minTeamSize >= 11) {
+        // Save to auction history
+        await saveAuctionHistory();
+        
         // Mark auction as complete
         const auctionRef = doc(db, 'auctions', auctionRoomId);
         await updateDoc(auctionRef, {
           status: 'complete',
-          isComplete: true
+          isComplete: true,
+          completedAt: new Date()
         });
         showSuccess('Auction complete! Everyone has 11 players!');
         return;
@@ -1127,6 +1475,12 @@ function App() {
       }
       const basePrice = getBasePrice(selectedPlayer.rating);
       
+      // Store previous player and trigger flip animation
+      if (auction?.currentPlayer) {
+        setPreviousPlayer(auction.currentPlayer);
+      }
+      setIsFlipping(true);
+      
       // Update auction state
       const auctionRef = doc(db, 'auctions', auctionRoomId);
       await updateDoc(auctionRef, {
@@ -1140,6 +1494,9 @@ function App() {
         timer: 20,
         currentPhase: currentAuctionPhase
       });
+      
+      // End flip animation after 600ms
+      setTimeout(() => setIsFlipping(false), 600);
       
       // Add activity log for auction start
       const phaseInfo = getPhaseDescription(currentAuctionPhase);
@@ -1407,6 +1764,11 @@ function App() {
         }
         
         showSuccess(`${freshAuction.currentPlayer.name} sold to ${winnerName} for ${freshAuction.currentBid}M!`);
+        
+        // Trigger confetti for 90+ rated players
+        if (freshAuction.currentPlayer.rating >= 90) {
+          setTimeout(() => triggerConfetti(), 300);
+        }
         
         // Check if auction should continue
         const minTeamSize = Math.min(...users.map(u => (u.team || []).length));
@@ -1859,6 +2221,13 @@ function App() {
         </div>
       </header>
 
+      {/* Reconnection Banner */}
+      {isReconnecting && (
+        <div className="bg-yellow-600 text-white p-3 text-center font-semibold animate-pulse">
+          ⚠️ Reconnecting... Please check your internet connection
+        </div>
+      )}
+
       {/* Messages */}
       {error && (
         <div className="bg-red-600 text-white p-3 text-center">
@@ -1881,7 +2250,7 @@ function App() {
                 <div className="flex flex-col md:flex-row gap-4 md:gap-6 mb-4 md:mb-6">
                   {/* Player Image */}
                   <div className="flex-shrink-0 mx-auto md:mx-0">
-                    <div className="relative transform hover:scale-110 transition-transform duration-300">
+                    <div className={`relative transform hover:scale-110 transition-transform duration-300 ${isFlipping ? 'animate-card-flip' : ''}`}>
                       <img 
                         src={auction.currentPlayer.imageUrl} 
                         alt={auction.currentPlayer.name}
@@ -2185,6 +2554,23 @@ function App() {
                   )}
                   
                   <button
+                    onClick={backupAuction}
+                    className="bg-gradient-to-r from-purple-600 to-purple-700 hover:from-purple-700 hover:to-purple-800 px-4 md:px-6 py-2.5 md:py-3 rounded-lg font-bold transition-all shadow-lg text-sm md:text-base"
+                  >
+                    💾 Backup Auction
+                  </button>
+                  
+                  <label className="bg-gradient-to-r from-indigo-600 to-indigo-700 hover:from-indigo-700 hover:to-indigo-800 px-4 md:px-6 py-2.5 md:py-3 rounded-lg font-bold transition-all shadow-lg text-sm md:text-base cursor-pointer text-center">
+                    📂 Restore Backup
+                    <input
+                      type="file"
+                      accept=".json"
+                      onChange={(e) => e.target.files[0] && restoreAuction(e.target.files[0])}
+                      className="hidden"
+                    />
+                  </label>
+                  
+                  <button
                     onClick={clearAllData}
                     className="bg-gradient-to-r from-red-600 to-red-700 hover:from-red-700 hover:to-red-800 px-4 md:px-6 py-2.5 md:py-3 rounded-lg font-bold transition-all shadow-lg text-sm md:text-base"
                   >
@@ -2223,6 +2609,21 @@ function App() {
               </div>
             </div>
 
+            {/* Chat Button */}
+            <div className="bg-gradient-to-br from-gray-800 to-gray-900 rounded-lg p-3 md:p-4 shadow-xl border border-gray-700 mb-3 md:mb-4">
+              <button
+                onClick={() => setShowChat(!showChat)}
+                className="w-full bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 px-4 py-3 rounded-lg text-white font-semibold shadow-lg hover:shadow-xl transition-all relative"
+              >
+                💬 Chat
+                {unreadMessages > 0 && (
+                  <span className="absolute -top-2 -right-2 bg-red-500 text-white text-xs font-bold rounded-full w-6 h-6 flex items-center justify-center animate-pulse">
+                    {unreadMessages}
+                  </span>
+                )}
+              </button>
+            </div>
+
             {/* All Participants */}
             <div className="bg-gradient-to-br from-gray-800 to-gray-900 rounded-lg p-3 md:p-4 shadow-xl border border-gray-700">
               <h3 className="text-base md:text-lg font-bold mb-3 md:mb-4 text-blue-400">Participants ({users.length})</h3>
@@ -2255,15 +2656,23 @@ function App() {
           <div className="bg-gradient-to-br from-gray-800 to-gray-900 rounded-xl max-w-4xl w-full max-h-[90vh] overflow-y-auto shadow-2xl border border-gray-700">
             <div className="sticky top-0 bg-gray-800/95 backdrop-blur-sm flex justify-between items-center p-4 md:p-6 border-b border-gray-700 z-10">
               <h2 className="text-lg md:text-2xl font-bold text-green-400">My Team ({currentUser?.team?.length || 0}/11)</h2>
-              <button
-                onClick={() => setShowTeamView(false)}
-                className="text-gray-400 hover:text-white text-2xl md:text-3xl w-8 h-8 md:w-10 md:h-10 flex items-center justify-center hover:bg-gray-700 rounded-lg transition-colors"
-              >
-                ×
-              </button>
+              <div className="flex gap-2 items-center">
+                <button
+                  onClick={exportTeamAsImage}
+                  className="bg-blue-600 hover:bg-blue-700 px-3 py-2 rounded-lg text-white text-sm font-medium transition-colors"
+                >
+                  📸 Export
+                </button>
+                <button
+                  onClick={() => setShowTeamView(false)}
+                  className="text-gray-400 hover:text-white text-2xl md:text-3xl w-8 h-8 md:w-10 md:h-10 flex items-center justify-center hover:bg-gray-700 rounded-lg transition-colors"
+                >
+                  ×
+                </button>
+              </div>
             </div>
             
-            <div className="p-3 md:p-6">
+            <div id="team-export-view" className="p-3 md:p-6">
               <div className="mb-4 md:mb-6 grid grid-cols-2 gap-2 md:gap-4">
                 <div className="bg-gradient-to-r from-green-900/30 to-gray-800 p-3 md:p-4 rounded-lg border border-green-600/30">
                   <p className="text-gray-300 text-xs md:text-sm">Budget Remaining</p>
@@ -2302,6 +2711,80 @@ function App() {
                   <p className="text-gray-500 text-xs md:text-sm mt-2">Start bidding to build your team!</p>
                 </div>
               )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Chat Modal */}
+      {showChat && (
+        <div className="fixed inset-0 bg-black bg-opacity-70 backdrop-blur-sm flex items-center justify-center p-3 md:p-4 z-50">
+          <div className="bg-gradient-to-br from-gray-800 to-gray-900 rounded-xl max-w-2xl w-full h-[600px] flex flex-col shadow-2xl border border-gray-700">
+            <div className="bg-gray-800/95 backdrop-blur-sm flex justify-between items-center p-4 border-b border-gray-700">
+              <h2 className="text-xl font-bold text-purple-400">💬 Auction Chat</h2>
+              <button
+                onClick={() => setShowChat(false)}
+                className="text-gray-400 hover:text-white text-2xl w-8 h-8 flex items-center justify-center hover:bg-gray-700 rounded-lg transition-colors"
+              >
+                ×
+              </button>
+            </div>
+            
+            <div className="flex-1 overflow-y-auto p-4 space-y-3">
+              {messages.length === 0 ? (
+                <div className="text-center text-gray-400 mt-8">
+                  <p>No messages yet</p>
+                  <p className="text-sm mt-2">Be the first to say something! 👋</p>
+                </div>
+              ) : (
+                messages.map((msg) => (
+                  <div
+                    key={msg.id}
+                    className={`flex ${msg.userId === user?.uid ? 'justify-end' : 'justify-start'}`}
+                  >
+                    <div
+                      className={`max-w-[70%] rounded-lg p-3 ${
+                        msg.userId === user?.uid
+                          ? 'bg-gradient-to-r from-purple-600 to-pink-600 text-white'
+                          : 'bg-gray-700 text-white'
+                      }`}
+                    >
+                      {msg.userId !== user?.uid && (
+                        <p className="text-xs font-semibold text-green-400 mb-1">{msg.userName}</p>
+                      )}
+                      <p className="text-sm break-words">{msg.text}</p>
+                      <p className="text-xs opacity-70 mt-1">
+                        {new Date(msg.timestamp?.seconds * 1000 || msg.createdAt).toLocaleTimeString([], {
+                          hour: '2-digit',
+                          minute: '2-digit'
+                        })}
+                      </p>
+                    </div>
+                  </div>
+                ))
+              )}
+              <div ref={chatEndRef} />
+            </div>
+            
+            <div className="p-4 border-t border-gray-700 bg-gray-800">
+              <div className="flex gap-2">
+                <input
+                  type="text"
+                  value={newMessage}
+                  onChange={(e) => setNewMessage(e.target.value)}
+                  onKeyPress={handleKeyPress}
+                  placeholder="Type a message..."
+                  className="flex-1 bg-gray-700 text-white px-4 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
+                  maxLength={500}
+                />
+                <button
+                  onClick={sendMessage}
+                  disabled={!newMessage.trim()}
+                  className="bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 disabled:from-gray-600 disabled:to-gray-600 px-6 py-2 rounded-lg text-white font-semibold transition-all"
+                >
+                  Send
+                </button>
+              </div>
             </div>
           </div>
         </div>

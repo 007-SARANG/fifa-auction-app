@@ -1,6 +1,7 @@
 // FIFA Player Database - Converted from player_database.json
 // Total Players: 183
-// Last Updated: 2025-11-12
+// Last Updated: 2025-11-19
+// Images Updated: 183 players
 
 const PLAYER_DATABASE = [
   {
@@ -21,7 +22,7 @@ const PLAYER_DATABASE = [
     "dribbling": 92,
     "defending": 50,
     "physicality": 70,
-    "imageUrl": "https://cdn.sofifa.net/players/default.png"
+    "imageUrl": "https://cdn.futwiz.com/assets/img/fifa23/faces/231747.png"
   },
   {
     "name": "Kevin De Bruyne",
@@ -41,7 +42,7 @@ const PLAYER_DATABASE = [
     "dribbling": 70,
     "defending": 50,
     "physicality": 70,
-    "imageUrl": "https://cdn.sofifa.net/players/default.png"
+    "imageUrl": "https://cdn.futwiz.com/assets/img/fifa23/faces/192985.png"
   },
   {
     "name": "Erling Haaland",
@@ -61,7 +62,7 @@ const PLAYER_DATABASE = [
     "dribbling": 70,
     "defending": 50,
     "physicality": 93,
-    "imageUrl": "https://cdn.sofifa.net/players/default.png"
+    "imageUrl": "https://cdn.futwiz.com/assets/img/fifa23/faces/239085.png"
   },
   {
     "name": "Karim Benzema",
@@ -81,7 +82,7 @@ const PLAYER_DATABASE = [
     "dribbling": 91,
     "defending": 50,
     "physicality": 70,
-    "imageUrl": "https://cdn.sofifa.net/players/default.png"
+    "imageUrl": "https://cdn.futwiz.com/assets/img/fifa23/faces/165153.png"
   },
   {
     "name": "Lionel Messi",
@@ -101,7 +102,7 @@ const PLAYER_DATABASE = [
     "dribbling": 94,
     "defending": 50,
     "physicality": 70,
-    "imageUrl": "https://cdn.sofifa.net/players/default.png"
+    "imageUrl": "https://cdn.futwiz.com/assets/img/fifa23/faces/158023.png"
   },
   {
     "name": "Robert Lewandowski",
@@ -121,7 +122,7 @@ const PLAYER_DATABASE = [
     "dribbling": 70,
     "defending": 50,
     "physicality": 89,
-    "imageUrl": "https://cdn.sofifa.net/players/default.png"
+    "imageUrl": "https://cdn.futwiz.com/assets/img/fifa23/faces/188545.png"
   },
   {
     "name": "Thibaut Courtois",
@@ -141,7 +142,7 @@ const PLAYER_DATABASE = [
     "dribbling": 70,
     "defending": 50,
     "physicality": 70,
-    "imageUrl": "https://cdn.sofifa.net/players/default.png"
+    "imageUrl": "https://cdn.futwiz.com/assets/img/fifa23/faces/192119.png"
   },
   {
     "name": "Mohamed Salah",
@@ -161,7 +162,7 @@ const PLAYER_DATABASE = [
     "dribbling": 89,
     "defending": 50,
     "physicality": 70,
-    "imageUrl": "https://cdn.sofifa.net/players/default.png"
+    "imageUrl": "https://cdn.futwiz.com/assets/img/fifa23/faces/209331.png"
   },
   {
     "name": "Manuel Neuer",
@@ -181,7 +182,7 @@ const PLAYER_DATABASE = [
     "dribbling": 70,
     "defending": 50,
     "physicality": 70,
-    "imageUrl": "https://cdn.sofifa.net/players/default.png"
+    "imageUrl": "https://cdn.futwiz.com/assets/img/fifa23/faces/167495.png"
   },
   {
     "name": "Virgil van Dijk",
@@ -201,7 +202,7 @@ const PLAYER_DATABASE = [
     "dribbling": 70,
     "defending": 91,
     "physicality": 93,
-    "imageUrl": "https://cdn.sofifa.net/players/default.png"
+    "imageUrl": "https://cdn.futwiz.com/assets/img/fifa23/faces/203376.png"
   },
   {
     "name": "Cristiano Ronaldo",
@@ -221,7 +222,7 @@ const PLAYER_DATABASE = [
     "dribbling": 70,
     "defending": 50,
     "physicality": 70,
-    "imageUrl": "https://cdn.sofifa.net/players/default.png"
+    "imageUrl": "https://cdn.futwiz.com/assets/img/fifa23/faces/20801.png"
   },
   {
     "name": "Harry Kane",
@@ -241,7 +242,7 @@ const PLAYER_DATABASE = [
     "dribbling": 70,
     "defending": 50,
     "physicality": 70,
-    "imageUrl": "https://cdn.sofifa.net/players/default.png"
+    "imageUrl": "https://cdn.futwiz.com/assets/img/fifa23/faces/202126.png"
   },
   {
     "name": "Casemiro",
@@ -261,7 +262,7 @@ const PLAYER_DATABASE = [
     "dribbling": 70,
     "defending": 89,
     "physicality": 90,
-    "imageUrl": "https://cdn.sofifa.net/players/default.png"
+    "imageUrl": "https://cdn.futwiz.com/assets/img/fifa23/faces/200145.png"
   },
   {
     "name": "Alisson",
@@ -281,7 +282,7 @@ const PLAYER_DATABASE = [
     "dribbling": 70,
     "defending": 50,
     "physicality": 70,
-    "imageUrl": "https://cdn.sofifa.net/players/default.png"
+    "imageUrl": "https://cdn.futwiz.com/assets/img/fifa23/faces/212831.png"
   },
   {
     "name": "Joshua Kimmich",
@@ -301,7 +302,7 @@ const PLAYER_DATABASE = [
     "dribbling": 70,
     "defending": 50,
     "physicality": 94,
-    "imageUrl": "https://cdn.sofifa.net/players/default.png"
+    "imageUrl": "https://cdn.futwiz.com/assets/img/fifa23/faces/212622.png"
   },
   {
     "name": "N'Golo Kanté",
@@ -321,7 +322,7 @@ const PLAYER_DATABASE = [
     "dribbling": 70,
     "defending": 50,
     "physicality": 97,
-    "imageUrl": "https://cdn.sofifa.net/players/default.png"
+    "imageUrl": "https://cdn.futwiz.com/assets/img/fifa23/faces/215914.png"
   },
   {
     "name": "Jan Oblak",
@@ -341,7 +342,7 @@ const PLAYER_DATABASE = [
     "dribbling": 70,
     "defending": 50,
     "physicality": 70,
-    "imageUrl": "https://cdn.sofifa.net/players/default.png"
+    "imageUrl": "https://cdn.futwiz.com/assets/img/fifa23/faces/200389.png"
   },
   {
     "name": "Ederson",
@@ -361,7 +362,7 @@ const PLAYER_DATABASE = [
     "dribbling": 70,
     "defending": 50,
     "physicality": 70,
-    "imageUrl": "https://cdn.sofifa.net/players/default.png"
+    "imageUrl": "https://cdn.futwiz.com/assets/img/fifa23/faces/210257.png"
   },
   {
     "name": "Neymar Jr",
@@ -381,7 +382,7 @@ const PLAYER_DATABASE = [
     "dribbling": 93,
     "defending": 50,
     "physicality": 70,
-    "imageUrl": "https://cdn.sofifa.net/players/default.png"
+    "imageUrl": "https://cdn.futwiz.com/assets/img/fifa23/faces/190871.png"
   },
   {
     "name": "Rodri",
@@ -401,7 +402,7 @@ const PLAYER_DATABASE = [
     "dribbling": 70,
     "defending": 50,
     "physicality": 70,
-    "imageUrl": "https://cdn.sofifa.net/players/default.png"
+    "imageUrl": "https://cdn.futwiz.com/assets/img/fifa23/faces/231866.png"
   },
   {
     "name": "Heung Min Son",
@@ -421,7 +422,7 @@ const PLAYER_DATABASE = [
     "dribbling": 70,
     "defending": 50,
     "physicality": 70,
-    "imageUrl": "https://cdn.sofifa.net/players/default.png"
+    "imageUrl": "https://cdn.futwiz.com/assets/img/fifa23/faces/200104.png"
   },
   {
     "name": "Toni Kroos",
@@ -441,7 +442,7 @@ const PLAYER_DATABASE = [
     "dribbling": 70,
     "defending": 50,
     "physicality": 70,
-    "imageUrl": "https://cdn.sofifa.net/players/default.png"
+    "imageUrl": "https://cdn.futwiz.com/assets/img/fifa23/faces/182521.png"
   },
   {
     "name": "Bernardo Silva",
@@ -461,7 +462,7 @@ const PLAYER_DATABASE = [
     "dribbling": 92,
     "defending": 50,
     "physicality": 93,
-    "imageUrl": "https://cdn.sofifa.net/players/default.png"
+    "imageUrl": "https://cdn.futwiz.com/assets/img/fifa23/faces/218667.png"
   },
   {
     "name": "Marquinhos",
@@ -481,7 +482,7 @@ const PLAYER_DATABASE = [
     "dribbling": 70,
     "defending": 50,
     "physicality": 70,
-    "imageUrl": "https://cdn.sofifa.net/players/default.png"
+    "imageUrl": "https://cdn.futwiz.com/assets/img/fifa23/faces/207093.png"
   },
   {
     "name": "Rúben Dias",
@@ -501,7 +502,7 @@ const PLAYER_DATABASE = [
     "dribbling": 70,
     "defending": 89,
     "physicality": 90,
-    "imageUrl": "https://cdn.sofifa.net/players/default.png"
+    "imageUrl": "https://cdn.futwiz.com/assets/img/fifa23/faces/239818.png"
   },
   {
     "name": "Luka Modrić",
@@ -521,7 +522,7 @@ const PLAYER_DATABASE = [
     "dribbling": 89,
     "defending": 50,
     "physicality": 70,
-    "imageUrl": "https://cdn.sofifa.net/players/default.png"
+    "imageUrl": "https://cdn.futwiz.com/assets/img/fifa23/faces/177003.png"
   },
   {
     "name": "Marc-André ter Stegen",
@@ -541,7 +542,7 @@ const PLAYER_DATABASE = [
     "dribbling": 70,
     "defending": 50,
     "physicality": 70,
-    "imageUrl": "https://cdn.sofifa.net/players/default.png"
+    "imageUrl": "https://cdn.futwiz.com/assets/img/fifa23/faces/192448.png"
   },
   {
     "name": "João Cancelo",
@@ -561,7 +562,7 @@ const PLAYER_DATABASE = [
     "dribbling": 87,
     "defending": 50,
     "physicality": 70,
-    "imageUrl": "https://cdn.sofifa.net/players/default.png"
+    "imageUrl": "https://cdn.futwiz.com/assets/img/fifa23/faces/210514.png"
   },
   {
     "name": "Antoine Griezmann",
@@ -581,7 +582,7 @@ const PLAYER_DATABASE = [
     "dribbling": 70,
     "defending": 50,
     "physicality": 90,
-    "imageUrl": "https://cdn.sofifa.net/players/default.png"
+    "imageUrl": "https://cdn.futwiz.com/assets/img/fifa23/faces/194765.png"
   },
   {
     "name": "Frenkie de Jong",
@@ -601,7 +602,7 @@ const PLAYER_DATABASE = [
     "dribbling": 89,
     "defending": 50,
     "physicality": 70,
-    "imageUrl": "https://cdn.sofifa.net/players/default.png"
+    "imageUrl": "https://cdn.futwiz.com/assets/img/fifa23/faces/228702.png"
   },
   {
     "name": "Antonio Rüdiger",
@@ -621,7 +622,7 @@ const PLAYER_DATABASE = [
     "dribbling": 70,
     "defending": 50,
     "physicality": 89,
-    "imageUrl": "https://cdn.sofifa.net/players/default.png"
+    "imageUrl": "https://cdn.futwiz.com/assets/img/fifa23/faces/205452.png"
   },
   {
     "name": "Kalidou Koulibaly",
@@ -641,7 +642,7 @@ const PLAYER_DATABASE = [
     "dribbling": 70,
     "defending": 88,
     "physicality": 94,
-    "imageUrl": "https://cdn.sofifa.net/players/default.png"
+    "imageUrl": "https://cdn.futwiz.com/assets/img/fifa23/faces/201024.png"
   },
   {
     "name": "Trent Alexander-Arnold",
@@ -661,7 +662,7 @@ const PLAYER_DATABASE = [
     "dribbling": 70,
     "defending": 50,
     "physicality": 70,
-    "imageUrl": "https://cdn.sofifa.net/players/default.png"
+    "imageUrl": "https://cdn.futwiz.com/assets/img/fifa23/faces/231281.png"
   },
   {
     "name": "Bruno Fernandes",
@@ -681,7 +682,7 @@ const PLAYER_DATABASE = [
     "dribbling": 70,
     "defending": 50,
     "physicality": 94,
-    "imageUrl": "https://cdn.sofifa.net/players/default.png"
+    "imageUrl": "https://cdn.futwiz.com/assets/img/fifa23/faces/212198.png"
   },
   {
     "name": "Gianluigi Donnarumma",
@@ -701,7 +702,7 @@ const PLAYER_DATABASE = [
     "dribbling": 70,
     "defending": 50,
     "physicality": 70,
-    "imageUrl": "https://cdn.sofifa.net/players/default.png"
+    "imageUrl": "https://cdn.futwiz.com/assets/img/fifa23/faces/230621.png"
   },
   {
     "name": "Lautaro Martínez",
@@ -721,7 +722,7 @@ const PLAYER_DATABASE = [
     "dribbling": 70,
     "defending": 50,
     "physicality": 70,
-    "imageUrl": "https://cdn.sofifa.net/players/default.png"
+    "imageUrl": "https://cdn.futwiz.com/assets/img/fifa23/faces/231478.png"
   },
   {
     "name": "Gregor Kobel",
@@ -741,7 +742,7 @@ const PLAYER_DATABASE = [
     "dribbling": 70,
     "defending": 50,
     "physicality": 70,
-    "imageUrl": "https://cdn.sofifa.net/players/default.png"
+    "imageUrl": "https://cdn.futwiz.com/assets/img/fifa23/faces/233064.png"
   },
   {
     "name": "Federico Valverde",
@@ -761,7 +762,7 @@ const PLAYER_DATABASE = [
     "dribbling": 70,
     "defending": 50,
     "physicality": 94,
-    "imageUrl": "https://cdn.sofifa.net/players/default.png"
+    "imageUrl": "https://cdn.futwiz.com/assets/img/fifa23/faces/240783.png"
   },
   {
     "name": "David Alaba",
@@ -781,7 +782,7 @@ const PLAYER_DATABASE = [
     "dribbling": 70,
     "defending": 50,
     "physicality": 70,
-    "imageUrl": "https://cdn.sofifa.net/players/default.png"
+    "imageUrl": "https://cdn.futwiz.com/assets/img/fifa23/faces/197445.png"
   },
   {
     "name": "Éder Militão",
@@ -801,7 +802,7 @@ const PLAYER_DATABASE = [
     "dribbling": 70,
     "defending": 50,
     "physicality": 70,
-    "imageUrl": "https://cdn.sofifa.net/players/default.png"
+    "imageUrl": "https://cdn.futwiz.com/assets/img/fifa23/faces/240130.png"
   },
   {
     "name": "Andrew Robertson",
@@ -821,7 +822,7 @@ const PLAYER_DATABASE = [
     "dribbling": 70,
     "defending": 50,
     "physicality": 96,
-    "imageUrl": "https://cdn.sofifa.net/players/default.png"
+    "imageUrl": "https://cdn.futwiz.com/assets/img/fifa23/faces/216267.png"
   },
   {
     "name": "Aymeric Laporte",
@@ -841,7 +842,7 @@ const PLAYER_DATABASE = [
     "dribbling": 70,
     "defending": 50,
     "physicality": 70,
-    "imageUrl": "https://cdn.sofifa.net/players/default.png"
+    "imageUrl": "https://cdn.futwiz.com/assets/img/fifa23/faces/212218.png"
   },
   {
     "name": "Milan Škriniar",
@@ -861,7 +862,7 @@ const PLAYER_DATABASE = [
     "dribbling": 70,
     "defending": 88,
     "physicality": 91,
-    "imageUrl": "https://cdn.sofifa.net/players/default.png"
+    "imageUrl": "https://cdn.futwiz.com/assets/img/fifa23/faces/213303.png"
   },
   {
     "name": "Vinícius Jr.",
@@ -881,7 +882,7 @@ const PLAYER_DATABASE = [
     "dribbling": 90,
     "defending": 50,
     "physicality": 70,
-    "imageUrl": "https://cdn.sofifa.net/players/default.png"
+    "imageUrl": "https://cdn.futwiz.com/assets/img/fifa23/faces/238794.png"
   },
   {
     "name": "Rafael Leão",
@@ -901,7 +902,7 @@ const PLAYER_DATABASE = [
     "dribbling": 88,
     "defending": 50,
     "physicality": 80,
-    "imageUrl": "https://cdn.sofifa.net/players/default.png"
+    "imageUrl": "https://cdn.futwiz.com/assets/img/fifa23/faces/234378.png"
   },
   {
     "name": "Kingsley Coman",
@@ -921,7 +922,7 @@ const PLAYER_DATABASE = [
     "dribbling": 88,
     "defending": 50,
     "physicality": 70,
-    "imageUrl": "https://cdn.sofifa.net/players/default.png"
+    "imageUrl": "https://cdn.futwiz.com/assets/img/fifa23/faces/213345.png"
   },
   {
     "name": "Theo Hernández",
@@ -941,7 +942,7 @@ const PLAYER_DATABASE = [
     "dribbling": 83,
     "defending": 50,
     "physicality": 88,
-    "imageUrl": "https://cdn.sofifa.net/players/default.png"
+    "imageUrl": "https://cdn.futwiz.com/assets/img/fifa23/faces/232656.png"
   },
   {
     "name": "Sadio Mané",
@@ -961,7 +962,7 @@ const PLAYER_DATABASE = [
     "dribbling": 86,
     "defending": 50,
     "physicality": 70,
-    "imageUrl": "https://cdn.sofifa.net/players/default.png"
+    "imageUrl": "https://cdn.futwiz.com/assets/img/fifa23/faces/208722.png"
   },
   {
     "name": "Paul Pogba",
@@ -981,7 +982,7 @@ const PLAYER_DATABASE = [
     "dribbling": 87,
     "defending": 50,
     "physicality": 87,
-    "imageUrl": "https://cdn.sofifa.net/players/default.png"
+    "imageUrl": "https://cdn.futwiz.com/assets/img/fifa23/faces/195864.png"
   },
   {
     "name": "Leon Goretzka",
@@ -1001,7 +1002,7 @@ const PLAYER_DATABASE = [
     "dribbling": 70,
     "defending": 50,
     "physicality": 88,
-    "imageUrl": "https://cdn.sofifa.net/players/default.png"
+    "imageUrl": "https://cdn.futwiz.com/assets/img/fifa23/faces/209658.png"
   },
   {
     "name": "Marco Verratti",
@@ -1021,7 +1022,7 @@ const PLAYER_DATABASE = [
     "dribbling": 89,
     "defending": 50,
     "physicality": 70,
-    "imageUrl": "https://cdn.sofifa.net/players/default.png"
+    "imageUrl": "https://cdn.futwiz.com/assets/img/fifa23/faces/197655.png"
   },
   {
     "name": "Niklas Süle",
@@ -1041,7 +1042,7 @@ const PLAYER_DATABASE = [
     "dribbling": 70,
     "defending": 86,
     "physicality": 95,
-    "imageUrl": "https://cdn.sofifa.net/players/default.png"
+    "imageUrl": "https://cdn.futwiz.com/assets/img/fifa23/faces/220914.png"
   },
   {
     "name": "Ciro Immobile",
@@ -1061,7 +1062,7 @@ const PLAYER_DATABASE = [
     "dribbling": 70,
     "defending": 50,
     "physicality": 70,
-    "imageUrl": "https://cdn.sofifa.net/players/default.png"
+    "imageUrl": "https://cdn.futwiz.com/assets/img/fifa23/faces/173153.png"
   },
   {
     "name": "Jude Bellingham",
@@ -1081,7 +1082,7 @@ const PLAYER_DATABASE = [
     "dribbling": 87,
     "defending": 80,
     "physicality": 92,
-    "imageUrl": "https://cdn.sofifa.net/players/default.png"
+    "imageUrl": "https://cdn.futwiz.com/assets/img/fifa23/faces/252371.png"
   },
   {
     "name": "Jamal Musiala",
@@ -1101,7 +1102,7 @@ const PLAYER_DATABASE = [
     "dribbling": 91,
     "defending": 50,
     "physicality": 70,
-    "imageUrl": "https://cdn.sofifa.net/players/default.png"
+    "imageUrl": "https://cdn.futwiz.com/assets/img/fifa23/faces/256630.png"
   },
   {
     "name": "Christopher Nkunku",
@@ -1121,7 +1122,7 @@ const PLAYER_DATABASE = [
     "dribbling": 89,
     "defending": 50,
     "physicality": 70,
-    "imageUrl": "https://cdn.sofifa.net/players/default.png"
+    "imageUrl": "https://cdn.futwiz.com/assets/img/fifa23/faces/232411.png"
   },
   {
     "name": "Matthijs de Ligt",
@@ -1141,7 +1142,7 @@ const PLAYER_DATABASE = [
     "dribbling": 70,
     "defending": 86,
     "physicality": 92,
-    "imageUrl": "https://cdn.sofifa.net/players/default.png"
+    "imageUrl": "https://cdn.futwiz.com/assets/img/fifa23/faces/235243.png"
   },
   {
     "name": "Pedri",
@@ -1161,7 +1162,7 @@ const PLAYER_DATABASE = [
     "dribbling": 88,
     "defending": 50,
     "physicality": 91,
-    "imageUrl": "https://cdn.sofifa.net/players/default.png"
+    "imageUrl": "https://cdn.futwiz.com/assets/img/fifa23/faces/251854.png"
   },
   {
     "name": "Nicolò Barella",
@@ -1181,7 +1182,7 @@ const PLAYER_DATABASE = [
     "dribbling": 85,
     "defending": 50,
     "physicality": 95,
-    "imageUrl": "https://cdn.sofifa.net/players/default.png"
+    "imageUrl": "https://cdn.futwiz.com/assets/img/fifa23/faces/224232.png"
   },
   {
     "name": "Kyle Walker",
@@ -1201,7 +1202,7 @@ const PLAYER_DATABASE = [
     "dribbling": 70,
     "defending": 82,
     "physicality": 83,
-    "imageUrl": "https://cdn.sofifa.net/players/default.png"
+    "imageUrl": "https://cdn.futwiz.com/assets/img/fifa23/faces/188377.png"
   },
   {
     "name": "Riyad Mahrez",
@@ -1221,7 +1222,7 @@ const PLAYER_DATABASE = [
     "dribbling": 90,
     "defending": 50,
     "physicality": 70,
-    "imageUrl": "https://cdn.sofifa.net/players/default.png"
+    "imageUrl": "https://cdn.futwiz.com/assets/img/fifa23/faces/204485.png"
   },
   {
     "name": "Marcos Acuña",
@@ -1241,7 +1242,7 @@ const PLAYER_DATABASE = [
     "dribbling": 70,
     "defending": 50,
     "physicality": 88,
-    "imageUrl": "https://cdn.sofifa.net/players/default.png"
+    "imageUrl": "https://cdn.futwiz.com/assets/img/fifa23/faces/226380.png"
   },
   {
     "name": "Diogo Jota",
@@ -1261,7 +1262,7 @@ const PLAYER_DATABASE = [
     "dribbling": 70,
     "defending": 50,
     "physicality": 70,
-    "imageUrl": "https://cdn.sofifa.net/players/default.png"
+    "imageUrl": "https://cdn.futwiz.com/assets/img/fifa23/faces/224458.png"
   },
   {
     "name": "Phil Foden",
@@ -1281,7 +1282,7 @@ const PLAYER_DATABASE = [
     "dribbling": 88,
     "defending": 50,
     "physicality": 70,
-    "imageUrl": "https://cdn.sofifa.net/players/default.png"
+    "imageUrl": "https://cdn.futwiz.com/assets/img/fifa23/faces/237692.png"
   },
   {
     "name": "Marcus Rashford",
@@ -1301,7 +1302,7 @@ const PLAYER_DATABASE = [
     "dribbling": 84,
     "defending": 50,
     "physicality": 70,
-    "imageUrl": "https://cdn.sofifa.net/players/default.png"
+    "imageUrl": "https://cdn.futwiz.com/assets/img/fifa23/faces/231677.png"
   },
   {
     "name": "Bukayo Saka",
@@ -1321,7 +1322,7 @@ const PLAYER_DATABASE = [
     "dribbling": 86,
     "defending": 50,
     "physicality": 87,
-    "imageUrl": "https://cdn.sofifa.net/players/default.png"
+    "imageUrl": "https://cdn.futwiz.com/assets/img/fifa23/faces/246669.png"
   },
   {
     "name": "Dominik Szoboszlai",
@@ -1341,7 +1342,7 @@ const PLAYER_DATABASE = [
     "dribbling": 70,
     "defending": 50,
     "physicality": 70,
-    "imageUrl": "https://cdn.sofifa.net/players/default.png"
+    "imageUrl": "https://cdn.futwiz.com/assets/img/fifa23/faces/255253.png"
   },
   {
     "name": "Declan Rice",
@@ -1361,7 +1362,7 @@ const PLAYER_DATABASE = [
     "dribbling": 70,
     "defending": 50,
     "physicality": 90,
-    "imageUrl": "https://cdn.sofifa.net/players/default.png"
+    "imageUrl": "https://cdn.futwiz.com/assets/img/fifa23/faces/234378.png"
   },
   {
     "name": "Sandro Tonali",
@@ -1381,7 +1382,7 @@ const PLAYER_DATABASE = [
     "dribbling": 70,
     "defending": 50,
     "physicality": 92,
-    "imageUrl": "https://cdn.sofifa.net/players/default.png"
+    "imageUrl": "https://cdn.futwiz.com/assets/img/fifa23/faces/232423.png"
   },
   {
     "name": "Joško Gvardiol",
@@ -1401,7 +1402,7 @@ const PLAYER_DATABASE = [
     "dribbling": 70,
     "defending": 86,
     "physicality": 87,
-    "imageUrl": "https://cdn.sofifa.net/players/default.png"
+    "imageUrl": "https://cdn.futwiz.com/assets/img/fifa23/faces/251804.png"
   },
   {
     "name": "Stefan de Vrij",
@@ -1421,7 +1422,7 @@ const PLAYER_DATABASE = [
     "dribbling": 70,
     "defending": 50,
     "physicality": 70,
-    "imageUrl": "https://cdn.sofifa.net/players/default.png"
+    "imageUrl": "https://cdn.futwiz.com/assets/img/fifa23/faces/184344.png"
   },
   {
     "name": "Koke",
@@ -1441,7 +1442,7 @@ const PLAYER_DATABASE = [
     "dribbling": 70,
     "defending": 50,
     "physicality": 92,
-    "imageUrl": "https://cdn.sofifa.net/players/default.png"
+    "imageUrl": "https://cdn.futwiz.com/assets/img/fifa23/faces/193747.png"
   },
   {
     "name": "Yann Sommer",
@@ -1461,7 +1462,7 @@ const PLAYER_DATABASE = [
     "dribbling": 70,
     "defending": 50,
     "physicality": 70,
-    "imageUrl": "https://cdn.sofifa.net/players/default.png"
+    "imageUrl": "https://cdn.futwiz.com/assets/img/fifa23/faces/164435.png"
   },
   {
     "name": "Dušan Tadić",
@@ -1481,7 +1482,7 @@ const PLAYER_DATABASE = [
     "dribbling": 85,
     "defending": 50,
     "physicality": 70,
-    "imageUrl": "https://cdn.sofifa.net/players/default.png"
+    "imageUrl": "https://cdn.futwiz.com/assets/img/fifa23/faces/167650.png"
   },
   {
     "name": "Marcos Llorente",
@@ -1501,7 +1502,7 @@ const PLAYER_DATABASE = [
     "dribbling": 82,
     "defending": 50,
     "physicality": 93,
-    "imageUrl": "https://cdn.sofifa.net/players/default.png"
+    "imageUrl": "https://cdn.futwiz.com/assets/img/fifa23/faces/226161.png"
   },
   {
     "name": "Raheem Sterling",
@@ -1521,7 +1522,7 @@ const PLAYER_DATABASE = [
     "dribbling": 86,
     "defending": 50,
     "physicality": 70,
-    "imageUrl": "https://cdn.sofifa.net/players/default.png"
+    "imageUrl": "https://cdn.futwiz.com/assets/img/fifa23/faces/202652.png"
   },
   {
     "name": "Paulo Dybala",
@@ -1541,7 +1542,7 @@ const PLAYER_DATABASE = [
     "dribbling": 90,
     "defending": 50,
     "physicality": 70,
-    "imageUrl": "https://cdn.sofifa.net/players/default.png"
+    "imageUrl": "https://cdn.futwiz.com/assets/img/fifa23/faces/211110.png"
   },
   {
     "name": "Thomas Müller",
@@ -1561,7 +1562,7 @@ const PLAYER_DATABASE = [
     "dribbling": 70,
     "defending": 50,
     "physicality": 90,
-    "imageUrl": "https://cdn.sofifa.net/players/default.png"
+    "imageUrl": "https://cdn.futwiz.com/assets/img/fifa23/faces/189596.png"
   },
   {
     "name": "Raphaël Varane",
@@ -1581,7 +1582,7 @@ const PLAYER_DATABASE = [
     "dribbling": 70,
     "defending": 50,
     "physicality": 84,
-    "imageUrl": "https://cdn.sofifa.net/players/default.png"
+    "imageUrl": "https://cdn.futwiz.com/assets/img/fifa23/faces/201535.png"
   },
   {
     "name": "Jules Koundé",
@@ -1601,7 +1602,7 @@ const PLAYER_DATABASE = [
     "dribbling": 70,
     "defending": 85,
     "physicality": 70,
-    "imageUrl": "https://cdn.sofifa.net/players/default.png"
+    "imageUrl": "https://cdn.futwiz.com/assets/img/fifa23/faces/241486.png"
   },
   {
     "name": "Achraf Hakimi",
@@ -1621,7 +1622,7 @@ const PLAYER_DATABASE = [
     "dribbling": 70,
     "defending": 50,
     "physicality": 90,
-    "imageUrl": "https://cdn.sofifa.net/players/default.png"
+    "imageUrl": "https://cdn.futwiz.com/assets/img/fifa23/faces/235212.png"
   },
   {
     "name": "Dayot Upamecano",
@@ -1641,7 +1642,7 @@ const PLAYER_DATABASE = [
     "dribbling": 70,
     "defending": 50,
     "physicality": 90,
-    "imageUrl": "https://cdn.sofifa.net/players/default.png"
+    "imageUrl": "https://cdn.futwiz.com/assets/img/fifa23/faces/229558.png"
   },
   {
     "name": "Reece James",
@@ -1661,7 +1662,7 @@ const PLAYER_DATABASE = [
     "dribbling": 70,
     "defending": 82,
     "physicality": 85,
-    "imageUrl": "https://cdn.sofifa.net/players/default.png"
+    "imageUrl": "https://cdn.futwiz.com/assets/img/fifa23/faces/238074.png"
   },
   {
     "name": "Dušan Vlahović",
@@ -1681,7 +1682,7 @@ const PLAYER_DATABASE = [
     "dribbling": 70,
     "defending": 50,
     "physicality": 87,
-    "imageUrl": "https://cdn.sofifa.net/players/default.png"
+    "imageUrl": "https://cdn.futwiz.com/assets/img/fifa23/faces/247394.png"
   },
   {
     "name": "Fikayo Tomori",
@@ -1701,7 +1702,7 @@ const PLAYER_DATABASE = [
     "dribbling": 70,
     "defending": 86,
     "physicality": 70,
-    "imageUrl": "https://cdn.sofifa.net/players/default.png"
+    "imageUrl": "https://cdn.futwiz.com/assets/img/fifa23/faces/232880.png"
   },
   {
     "name": "Alphonso Davies",
@@ -1721,7 +1722,7 @@ const PLAYER_DATABASE = [
     "dribbling": 86,
     "defending": 50,
     "physicality": 88,
-    "imageUrl": "https://cdn.sofifa.net/players/default.png"
+    "imageUrl": "https://cdn.futwiz.com/assets/img/fifa23/faces/234396.png"
   },
   {
     "name": "Rodrygo",
@@ -1741,7 +1742,7 @@ const PLAYER_DATABASE = [
     "dribbling": 87,
     "defending": 50,
     "physicality": 70,
-    "imageUrl": "https://cdn.sofifa.net/players/default.png"
+    "imageUrl": "https://cdn.futwiz.com/assets/img/fifa23/faces/243812.png"
   },
   {
     "name": "Florian Wirtz",
@@ -1761,7 +1762,7 @@ const PLAYER_DATABASE = [
     "dribbling": 88,
     "defending": 50,
     "physicality": 70,
-    "imageUrl": "https://cdn.sofifa.net/players/default.png"
+    "imageUrl": "https://cdn.futwiz.com/assets/img/fifa23/faces/256630.png"
   },
   {
     "name": "Dani Carvajal",
@@ -1781,7 +1782,7 @@ const PLAYER_DATABASE = [
     "dribbling": 70,
     "defending": 82,
     "physicality": 90,
-    "imageUrl": "https://cdn.sofifa.net/players/default.png"
+    "imageUrl": "https://cdn.futwiz.com/assets/img/fifa23/faces/204963.png"
   },
   {
     "name": "Kieran Trippier",
@@ -1801,7 +1802,7 @@ const PLAYER_DATABASE = [
     "dribbling": 70,
     "defending": 50,
     "physicality": 70,
-    "imageUrl": "https://cdn.sofifa.net/players/default.png"
+    "imageUrl": "https://cdn.futwiz.com/assets/img/fifa23/faces/186345.png"
   },
   {
     "name": "Leroy Sané",
@@ -1821,7 +1822,7 @@ const PLAYER_DATABASE = [
     "dribbling": 86,
     "defending": 50,
     "physicality": 70,
-    "imageUrl": "https://cdn.sofifa.net/players/default.png"
+    "imageUrl": "https://cdn.futwiz.com/assets/img/fifa23/faces/192565.png"
   },
   {
     "name": "Ronald Araújo",
@@ -1841,7 +1842,7 @@ const PLAYER_DATABASE = [
     "dribbling": 70,
     "defending": 85,
     "physicality": 88,
-    "imageUrl": "https://cdn.sofifa.net/players/default.png"
+    "imageUrl": "https://cdn.futwiz.com/assets/img/fifa23/faces/247679.png"
   },
   {
     "name": "Lisandro Martínez",
@@ -1861,7 +1862,7 @@ const PLAYER_DATABASE = [
     "dribbling": 70,
     "defending": 85,
     "physicality": 70,
-    "imageUrl": "https://cdn.sofifa.net/players/default.png"
+    "imageUrl": "https://cdn.futwiz.com/assets/img/fifa23/faces/231478.png"
   },
   {
     "name": "Thiago Silva",
@@ -1881,7 +1882,7 @@ const PLAYER_DATABASE = [
     "dribbling": 70,
     "defending": 50,
     "physicality": 70,
-    "imageUrl": "https://cdn.sofifa.net/players/default.png"
+    "imageUrl": "https://cdn.futwiz.com/assets/img/fifa23/faces/165511.png"
   },
   {
     "name": "Luis Díaz",
@@ -1901,7 +1902,7 @@ const PLAYER_DATABASE = [
     "dribbling": 87,
     "defending": 50,
     "physicality": 88,
-    "imageUrl": "https://cdn.sofifa.net/players/default.png"
+    "imageUrl": "https://cdn.futwiz.com/assets/img/fifa23/faces/241084.png"
   },
   {
     "name": "Lucas Hernández",
@@ -1921,7 +1922,7 @@ const PLAYER_DATABASE = [
     "dribbling": 70,
     "defending": 85,
     "physicality": 70,
-    "imageUrl": "https://cdn.sofifa.net/players/default.png"
+    "imageUrl": "https://cdn.futwiz.com/assets/img/fifa23/faces/220814.png"
   },
   {
     "name": "Mason Mount",
@@ -1941,7 +1942,7 @@ const PLAYER_DATABASE = [
     "dribbling": 70,
     "defending": 50,
     "physicality": 91,
-    "imageUrl": "https://cdn.sofifa.net/players/default.png"
+    "imageUrl": "https://cdn.futwiz.com/assets/img/fifa23/faces/233064.png"
   },
   {
     "name": "Gavi",
@@ -1961,7 +1962,7 @@ const PLAYER_DATABASE = [
     "dribbling": 70,
     "defending": 50,
     "physicality": 91,
-    "imageUrl": "https://cdn.sofifa.net/players/default.png"
+    "imageUrl": "https://cdn.futwiz.com/assets/img/fifa23/faces/264240.png"
   },
   {
     "name": "William Saliba",
@@ -1981,7 +1982,7 @@ const PLAYER_DATABASE = [
     "dribbling": 70,
     "defending": 84,
     "physicality": 85,
-    "imageUrl": "https://cdn.sofifa.net/players/default.png"
+    "imageUrl": "https://cdn.futwiz.com/assets/img/fifa23/faces/241096.png"
   },
   {
     "name": "Cristian Romero",
@@ -2001,7 +2002,7 @@ const PLAYER_DATABASE = [
     "dribbling": 70,
     "defending": 85,
     "physicality": 84,
-    "imageUrl": "https://cdn.sofifa.net/players/default.png"
+    "imageUrl": "https://cdn.futwiz.com/assets/img/fifa23/faces/232488.png"
   },
   {
     "name": "Bremer",
@@ -2021,7 +2022,7 @@ const PLAYER_DATABASE = [
     "dribbling": 70,
     "defending": 84,
     "physicality": 92,
-    "imageUrl": "https://cdn.sofifa.net/players/default.png"
+    "imageUrl": "https://cdn.futwiz.com/assets/img/fifa23/faces/234632.png"
   },
   {
     "name": "Pau Torres",
@@ -2041,7 +2042,7 @@ const PLAYER_DATABASE = [
     "dribbling": 70,
     "defending": 50,
     "physicality": 70,
-    "imageUrl": "https://cdn.sofifa.net/players/default.png"
+    "imageUrl": "https://cdn.futwiz.com/assets/img/fifa23/faces/234641.png"
   },
   {
     "name": "Presnel Kimpembe",
@@ -2061,7 +2062,7 @@ const PLAYER_DATABASE = [
     "dribbling": 70,
     "defending": 50,
     "physicality": 87,
-    "imageUrl": "https://cdn.sofifa.net/players/default.png"
+    "imageUrl": "https://cdn.futwiz.com/assets/img/fifa23/faces/201282.png"
   },
   {
     "name": "Ibrahima Konaté",
@@ -2081,7 +2082,7 @@ const PLAYER_DATABASE = [
     "dribbling": 70,
     "defending": 83,
     "physicality": 88,
-    "imageUrl": "https://cdn.sofifa.net/players/default.png"
+    "imageUrl": "https://cdn.futwiz.com/assets/img/fifa23/faces/237678.png"
   },
   {
     "name": "John Stones",
@@ -2101,7 +2102,7 @@ const PLAYER_DATABASE = [
     "dribbling": 70,
     "defending": 50,
     "physicality": 70,
-    "imageUrl": "https://cdn.sofifa.net/players/default.png"
+    "imageUrl": "https://cdn.futwiz.com/assets/img/fifa23/faces/203574.png"
   },
   {
     "name": "Christian Eriksen",
@@ -2121,7 +2122,7 @@ const PLAYER_DATABASE = [
     "dribbling": 70,
     "defending": 50,
     "physicality": 70,
-    "imageUrl": "https://cdn.sofifa.net/players/default.png"
+    "imageUrl": "https://cdn.futwiz.com/assets/img/fifa23/faces/190460.png"
   },
   {
     "name": "Piotr Zieliński",
@@ -2141,7 +2142,7 @@ const PLAYER_DATABASE = [
     "dribbling": 86,
     "defending": 50,
     "physicality": 70,
-    "imageUrl": "https://cdn.sofifa.net/players/default.png"
+    "imageUrl": "https://cdn.futwiz.com/assets/img/fifa23/faces/199360.png"
   },
   {
     "name": "Raphinha",
@@ -2161,7 +2162,7 @@ const PLAYER_DATABASE = [
     "dribbling": 85,
     "defending": 50,
     "physicality": 70,
-    "imageUrl": "https://cdn.sofifa.net/players/default.png"
+    "imageUrl": "https://cdn.futwiz.com/assets/img/fifa23/faces/241084.png"
   },
   {
     "name": "Federico Chiesa",
@@ -2181,7 +2182,7 @@ const PLAYER_DATABASE = [
     "dribbling": 86,
     "defending": 50,
     "physicality": 70,
-    "imageUrl": "https://cdn.sofifa.net/players/default.png"
+    "imageUrl": "https://cdn.futwiz.com/assets/img/fifa23/faces/235805.png"
   },
   {
     "name": "Moussa Diaby",
@@ -2201,7 +2202,7 @@ const PLAYER_DATABASE = [
     "dribbling": 85,
     "defending": 50,
     "physicality": 70,
-    "imageUrl": "https://cdn.sofifa.net/players/default.png"
+    "imageUrl": "https://cdn.futwiz.com/assets/img/fifa23/faces/234906.png"
   },
   {
     "name": "Ousmane Dembélé",
@@ -2221,7 +2222,7 @@ const PLAYER_DATABASE = [
     "dribbling": 87,
     "defending": 50,
     "physicality": 70,
-    "imageUrl": "https://cdn.sofifa.net/players/default.png"
+    "imageUrl": "https://cdn.futwiz.com/assets/img/fifa23/faces/231443.png"
   },
   {
     "name": "Domenico Berardi",
@@ -2241,7 +2242,7 @@ const PLAYER_DATABASE = [
     "dribbling": 70,
     "defending": 50,
     "physicality": 70,
-    "imageUrl": "https://cdn.sofifa.net/players/default.png"
+    "imageUrl": "https://cdn.futwiz.com/assets/img/fifa23/faces/199556.png"
   },
   {
     "name": "Diego Carlos",
@@ -2261,7 +2262,7 @@ const PLAYER_DATABASE = [
     "dribbling": 70,
     "defending": 50,
     "physicality": 91,
-    "imageUrl": "https://cdn.sofifa.net/players/default.png"
+    "imageUrl": "https://cdn.futwiz.com/assets/img/fifa23/faces/213331.png"
   },
   {
     "name": "Gerard Moreno",
@@ -2281,7 +2282,7 @@ const PLAYER_DATABASE = [
     "dribbling": 70,
     "defending": 50,
     "physicality": 70,
-    "imageUrl": "https://cdn.sofifa.net/players/default.png"
+    "imageUrl": "https://cdn.futwiz.com/assets/img/fifa23/faces/212462.png"
   },
   {
     "name": "Jorginho",
@@ -2301,7 +2302,7 @@ const PLAYER_DATABASE = [
     "dribbling": 70,
     "defending": 50,
     "physicality": 70,
-    "imageUrl": "https://cdn.sofifa.net/players/default.png"
+    "imageUrl": "https://cdn.futwiz.com/assets/img/fifa23/faces/205498.png"
   },
   {
     "name": "Mikel Oyarzabal",
@@ -2321,7 +2322,7 @@ const PLAYER_DATABASE = [
     "dribbling": 70,
     "defending": 50,
     "physicality": 70,
-    "imageUrl": "https://cdn.sofifa.net/players/default.png"
+    "imageUrl": "https://cdn.futwiz.com/assets/img/fifa23/faces/230142.png"
   },
   {
     "name": "Lorenzo Pellegrini",
@@ -2341,7 +2342,7 @@ const PLAYER_DATABASE = [
     "dribbling": 70,
     "defending": 50,
     "physicality": 88,
-    "imageUrl": "https://cdn.sofifa.net/players/default.png"
+    "imageUrl": "https://cdn.futwiz.com/assets/img/fifa23/faces/234060.png"
   },
   {
     "name": "Cody Gakpo",
@@ -2361,7 +2362,7 @@ const PLAYER_DATABASE = [
     "dribbling": 70,
     "defending": 50,
     "physicality": 81,
-    "imageUrl": "https://cdn.sofifa.net/players/default.png"
+    "imageUrl": "https://cdn.futwiz.com/assets/img/fifa23/faces/236196.png"
   },
   {
     "name": "Jordan Pickford",
@@ -2381,7 +2382,7 @@ const PLAYER_DATABASE = [
     "dribbling": 70,
     "defending": 50,
     "physicality": 70,
-    "imageUrl": "https://cdn.sofifa.net/players/default.png"
+    "imageUrl": "https://cdn.futwiz.com/assets/img/fifa23/faces/204935.png"
   },
   {
     "name": "Gabriel Martinelli",
@@ -2401,7 +2402,7 @@ const PLAYER_DATABASE = [
     "dribbling": 70,
     "defending": 50,
     "physicality": 70,
-    "imageUrl": "https://cdn.sofifa.net/players/default.png"
+    "imageUrl": "https://cdn.futwiz.com/assets/img/fifa23/faces/251517.png"
   },
   {
     "name": "Luis Muriel",
@@ -2421,7 +2422,7 @@ const PLAYER_DATABASE = [
     "dribbling": 70,
     "defending": 50,
     "physicality": 70,
-    "imageUrl": "https://cdn.sofifa.net/players/default.png"
+    "imageUrl": "https://cdn.futwiz.com/assets/img/fifa23/faces/178509.png"
   },
   {
     "name": "Wilfred Ndidi",
@@ -2441,7 +2442,7 @@ const PLAYER_DATABASE = [
     "dribbling": 70,
     "defending": 50,
     "physicality": 70,
-    "imageUrl": "https://cdn.sofifa.net/players/default.png"
+    "imageUrl": "https://cdn.futwiz.com/assets/img/fifa23/faces/226224.png"
   },
   {
     "name": "Aurélien Tchouaméni",
@@ -2461,7 +2462,7 @@ const PLAYER_DATABASE = [
     "dribbling": 70,
     "defending": 50,
     "physicality": 70,
-    "imageUrl": "https://cdn.sofifa.net/players/default.png"
+    "imageUrl": "https://cdn.futwiz.com/assets/img/fifa23/faces/241486.png"
   },
   {
     "name": "Dani Olmo",
@@ -2481,7 +2482,7 @@ const PLAYER_DATABASE = [
     "dribbling": 70,
     "defending": 50,
     "physicality": 70,
-    "imageUrl": "https://cdn.sofifa.net/players/default.png"
+    "imageUrl": "https://cdn.futwiz.com/assets/img/fifa23/faces/244260.png"
   },
   {
     "name": "Unai Simón",
@@ -2501,7 +2502,7 @@ const PLAYER_DATABASE = [
     "dribbling": 70,
     "defending": 50,
     "physicality": 70,
-    "imageUrl": "https://cdn.sofifa.net/players/default.png"
+    "imageUrl": "https://cdn.futwiz.com/assets/img/fifa23/faces/230621.png"
   },
   {
     "name": "Iñaki Williams",
@@ -2521,7 +2522,7 @@ const PLAYER_DATABASE = [
     "dribbling": 70,
     "defending": 50,
     "physicality": 70,
-    "imageUrl": "https://cdn.sofifa.net/players/default.png"
+    "imageUrl": "https://cdn.futwiz.com/assets/img/fifa23/faces/230977.png"
   },
   {
     "name": "Jeremie Frimpong",
@@ -2541,7 +2542,7 @@ const PLAYER_DATABASE = [
     "dribbling": 70,
     "defending": 50,
     "physicality": 70,
-    "imageUrl": "https://cdn.sofifa.net/players/default.png"
+    "imageUrl": "https://cdn.futwiz.com/assets/img/fifa23/faces/241486.png"
   },
   {
     "name": "Nuno Mendes",
@@ -2561,7 +2562,7 @@ const PLAYER_DATABASE = [
     "dribbling": 70,
     "defending": 50,
     "physicality": 70,
-    "imageUrl": "https://cdn.sofifa.net/players/default.png"
+    "imageUrl": "https://cdn.futwiz.com/assets/img/fifa23/faces/251573.png"
   },
   {
     "name": "Noussair Mazraoui",
@@ -2581,7 +2582,7 @@ const PLAYER_DATABASE = [
     "dribbling": 70,
     "defending": 50,
     "physicality": 70,
-    "imageUrl": "https://cdn.sofifa.net/players/default.png"
+    "imageUrl": "https://cdn.futwiz.com/assets/img/fifa23/faces/236401.png"
   },
   {
     "name": "Denzel Dumfries",
@@ -2601,7 +2602,7 @@ const PLAYER_DATABASE = [
     "dribbling": 70,
     "defending": 50,
     "physicality": 70,
-    "imageUrl": "https://cdn.sofifa.net/players/default.png"
+    "imageUrl": "https://cdn.futwiz.com/assets/img/fifa23/faces/235243.png"
   },
   {
     "name": "Steven Berghuis",
@@ -2621,7 +2622,7 @@ const PLAYER_DATABASE = [
     "dribbling": 70,
     "defending": 50,
     "physicality": 70,
-    "imageUrl": "https://cdn.sofifa.net/players/default.png"
+    "imageUrl": "https://cdn.futwiz.com/assets/img/fifa23/faces/181291.png"
   },
   {
     "name": "João Félix",
@@ -2641,7 +2642,7 @@ const PLAYER_DATABASE = [
     "dribbling": 70,
     "defending": 50,
     "physicality": 70,
-    "imageUrl": "https://cdn.sofifa.net/players/default.png"
+    "imageUrl": "https://cdn.futwiz.com/assets/img/fifa23/faces/242444.png"
   },
   {
     "name": "Samir Handanović",
@@ -2661,7 +2662,7 @@ const PLAYER_DATABASE = [
     "dribbling": 70,
     "defending": 50,
     "physicality": 70,
-    "imageUrl": "https://cdn.sofifa.net/players/default.png"
+    "imageUrl": "https://cdn.futwiz.com/assets/img/fifa23/faces/161644.png"
   },
   {
     "name": "Lucas Paquetá",
@@ -2681,7 +2682,7 @@ const PLAYER_DATABASE = [
     "dribbling": 70,
     "defending": 50,
     "physicality": 70,
-    "imageUrl": "https://cdn.sofifa.net/players/default.png"
+    "imageUrl": "https://cdn.futwiz.com/assets/img/fifa23/faces/235869.png"
   },
   {
     "name": "Darwin Núñez",
@@ -2701,7 +2702,7 @@ const PLAYER_DATABASE = [
     "dribbling": 70,
     "defending": 50,
     "physicality": 70,
-    "imageUrl": "https://cdn.sofifa.net/players/default.png"
+    "imageUrl": "https://cdn.futwiz.com/assets/img/fifa23/faces/253072.png"
   },
   {
     "name": "William Carvalho",
@@ -2721,7 +2722,7 @@ const PLAYER_DATABASE = [
     "dribbling": 70,
     "defending": 50,
     "physicality": 70,
-    "imageUrl": "https://cdn.sofifa.net/players/default.png"
+    "imageUrl": "https://cdn.futwiz.com/assets/img/fifa23/faces/208847.png"
   },
   {
     "name": "Dominik Livaković",
@@ -2741,7 +2742,7 @@ const PLAYER_DATABASE = [
     "dribbling": 70,
     "defending": 50,
     "physicality": 70,
-    "imageUrl": "https://cdn.sofifa.net/players/default.png"
+    "imageUrl": "https://cdn.futwiz.com/assets/img/fifa23/faces/195272.png"
   },
   {
     "name": "Richarlison",
@@ -2761,7 +2762,7 @@ const PLAYER_DATABASE = [
     "dribbling": 70,
     "defending": 50,
     "physicality": 70,
-    "imageUrl": "https://cdn.sofifa.net/players/default.png"
+    "imageUrl": "https://cdn.futwiz.com/assets/img/fifa23/faces/231943.png"
   },
   {
     "name": "Juan Cuadrado",
@@ -2781,7 +2782,7 @@ const PLAYER_DATABASE = [
     "dribbling": 70,
     "defending": 50,
     "physicality": 70,
-    "imageUrl": "https://cdn.sofifa.net/players/default.png"
+    "imageUrl": "https://cdn.futwiz.com/assets/img/fifa23/faces/189513.png"
   },
   {
     "name": "Jesús Navas",
@@ -2801,7 +2802,7 @@ const PLAYER_DATABASE = [
     "dribbling": 70,
     "defending": 50,
     "physicality": 70,
-    "imageUrl": "https://cdn.sofifa.net/players/default.png"
+    "imageUrl": "https://cdn.futwiz.com/assets/img/fifa23/faces/146536.png"
   },
   {
     "name": "Ivan Rakitić",
@@ -2821,7 +2822,7 @@ const PLAYER_DATABASE = [
     "dribbling": 70,
     "defending": 50,
     "physicality": 70,
-    "imageUrl": "https://cdn.sofifa.net/players/default.png"
+    "imageUrl": "https://cdn.futwiz.com/assets/img/fifa23/faces/168651.png"
   },
   {
     "name": "José Sá",
@@ -2841,7 +2842,7 @@ const PLAYER_DATABASE = [
     "dribbling": 70,
     "defending": 50,
     "physicality": 70,
-    "imageUrl": "https://cdn.sofifa.net/players/default.png"
+    "imageUrl": "https://cdn.futwiz.com/assets/img/fifa23/faces/216217.png"
   },
   {
     "name": "Emre Can",
@@ -2861,7 +2862,7 @@ const PLAYER_DATABASE = [
     "dribbling": 70,
     "defending": 50,
     "physicality": 70,
-    "imageUrl": "https://cdn.sofifa.net/players/default.png"
+    "imageUrl": "https://cdn.futwiz.com/assets/img/fifa23/faces/200958.png"
   },
   {
     "name": "Aaron Wan-Bissaka",
@@ -2881,7 +2882,7 @@ const PLAYER_DATABASE = [
     "dribbling": 70,
     "defending": 50,
     "physicality": 70,
-    "imageUrl": "https://cdn.sofifa.net/players/default.png"
+    "imageUrl": "https://cdn.futwiz.com/assets/img/fifa23/faces/222509.png"
   },
   {
     "name": "Leandro Trossard",
@@ -2901,7 +2902,7 @@ const PLAYER_DATABASE = [
     "dribbling": 70,
     "defending": 50,
     "physicality": 70,
-    "imageUrl": "https://cdn.sofifa.net/players/default.png"
+    "imageUrl": "https://cdn.futwiz.com/assets/img/fifa23/faces/207421.png"
   },
   {
     "name": "Zambo Anguissa",
@@ -2921,7 +2922,7 @@ const PLAYER_DATABASE = [
     "dribbling": 70,
     "defending": 50,
     "physicality": 70,
-    "imageUrl": "https://cdn.sofifa.net/players/default.png"
+    "imageUrl": "https://cdn.futwiz.com/assets/img/fifa23/faces/234378.png"
   },
   {
     "name": "Memphis Depay",
@@ -2941,7 +2942,7 @@ const PLAYER_DATABASE = [
     "dribbling": 70,
     "defending": 50,
     "physicality": 70,
-    "imageUrl": "https://cdn.sofifa.net/players/default.png"
+    "imageUrl": "https://cdn.futwiz.com/assets/img/fifa23/faces/202556.png"
   },
   {
     "name": "Tammy Abraham",
@@ -2961,7 +2962,7 @@ const PLAYER_DATABASE = [
     "dribbling": 70,
     "defending": 50,
     "physicality": 70,
-    "imageUrl": "https://cdn.sofifa.net/players/default.png"
+    "imageUrl": "https://cdn.futwiz.com/assets/img/fifa23/faces/233047.png"
   },
   {
     "name": "Timo Werner",
@@ -2981,7 +2982,7 @@ const PLAYER_DATABASE = [
     "dribbling": 70,
     "defending": 50,
     "physicality": 70,
-    "imageUrl": "https://cdn.sofifa.net/players/default.png"
+    "imageUrl": "https://cdn.futwiz.com/assets/img/fifa23/faces/212188.png"
   },
   {
     "name": "Pedro Porro",
@@ -3001,7 +3002,7 @@ const PLAYER_DATABASE = [
     "dribbling": 70,
     "defending": 50,
     "physicality": 70,
-    "imageUrl": "https://cdn.sofifa.net/players/default.png"
+    "imageUrl": "https://cdn.futwiz.com/assets/img/fifa23/faces/238789.png"
   },
   {
     "name": "Rafa",
@@ -3021,7 +3022,7 @@ const PLAYER_DATABASE = [
     "dribbling": 70,
     "defending": 50,
     "physicality": 70,
-    "imageUrl": "https://cdn.sofifa.net/players/default.png"
+    "imageUrl": "https://cdn.futwiz.com/assets/img/fifa23/faces/207297.png"
   },
   {
     "name": "Antony",
@@ -3041,7 +3042,7 @@ const PLAYER_DATABASE = [
     "dribbling": 70,
     "defending": 50,
     "physicality": 70,
-    "imageUrl": "https://cdn.sofifa.net/players/default.png"
+    "imageUrl": "https://cdn.futwiz.com/assets/img/fifa23/faces/240833.png"
   },
   {
     "name": "Ferran Torres",
@@ -3061,7 +3062,7 @@ const PLAYER_DATABASE = [
     "dribbling": 70,
     "defending": 50,
     "physicality": 70,
-    "imageUrl": "https://cdn.sofifa.net/players/default.png"
+    "imageUrl": "https://cdn.futwiz.com/assets/img/fifa23/faces/241084.png"
   },
   {
     "name": "Ferland Mendy",
@@ -3081,7 +3082,7 @@ const PLAYER_DATABASE = [
     "dribbling": 70,
     "defending": 50,
     "physicality": 70,
-    "imageUrl": "https://cdn.sofifa.net/players/default.png"
+    "imageUrl": "https://cdn.futwiz.com/assets/img/fifa23/faces/224260.png"
   },
   {
     "name": "Carlos Soler",
@@ -3101,7 +3102,7 @@ const PLAYER_DATABASE = [
     "dribbling": 70,
     "defending": 50,
     "physicality": 70,
-    "imageUrl": "https://cdn.sofifa.net/players/default.png"
+    "imageUrl": "https://cdn.futwiz.com/assets/img/fifa23/faces/226161.png"
   },
   {
     "name": "Thomas Lemar",
@@ -3121,7 +3122,7 @@ const PLAYER_DATABASE = [
     "dribbling": 70,
     "defending": 50,
     "physicality": 70,
-    "imageUrl": "https://cdn.sofifa.net/players/default.png"
+    "imageUrl": "https://cdn.futwiz.com/assets/img/fifa23/faces/208418.png"
   },
   {
     "name": "Hakim Ziyech",
@@ -3141,7 +3142,7 @@ const PLAYER_DATABASE = [
     "dribbling": 70,
     "defending": 50,
     "physicality": 70,
-    "imageUrl": "https://cdn.sofifa.net/players/default.png"
+    "imageUrl": "https://cdn.futwiz.com/assets/img/fifa23/faces/208670.png"
   },
   {
     "name": "Hirving Lozano",
@@ -3161,7 +3162,7 @@ const PLAYER_DATABASE = [
     "dribbling": 70,
     "defending": 50,
     "physicality": 70,
-    "imageUrl": "https://cdn.sofifa.net/players/default.png"
+    "imageUrl": "https://cdn.futwiz.com/assets/img/fifa23/faces/216756.png"
   },
   {
     "name": "Nick Pope",
@@ -3181,7 +3182,7 @@ const PLAYER_DATABASE = [
     "dribbling": 70,
     "defending": 50,
     "physicality": 70,
-    "imageUrl": "https://cdn.sofifa.net/players/default.png"
+    "imageUrl": "https://cdn.futwiz.com/assets/img/fifa23/faces/196334.png"
   },
   {
     "name": "Fernando",
@@ -3201,7 +3202,7 @@ const PLAYER_DATABASE = [
     "dribbling": 70,
     "defending": 50,
     "physicality": 70,
-    "imageUrl": "https://cdn.sofifa.net/players/default.png"
+    "imageUrl": "https://cdn.futwiz.com/assets/img/fifa23/faces/181458.png"
   },
   {
     "name": "Alexander Isak",
@@ -3221,7 +3222,7 @@ const PLAYER_DATABASE = [
     "dribbling": 70,
     "defending": 50,
     "physicality": 70,
-    "imageUrl": "https://cdn.sofifa.net/players/default.png"
+    "imageUrl": "https://cdn.futwiz.com/assets/img/fifa23/faces/234196.png"
   },
   {
     "name": "Nicolás Tagliafico",
@@ -3241,7 +3242,7 @@ const PLAYER_DATABASE = [
     "dribbling": 70,
     "defending": 50,
     "physicality": 70,
-    "imageUrl": "https://cdn.sofifa.net/players/default.png"
+    "imageUrl": "https://cdn.futwiz.com/assets/img/fifa23/faces/192353.png"
   },
   {
     "name": "Kaoru Mitoma",
@@ -3261,7 +3262,7 @@ const PLAYER_DATABASE = [
     "dribbling": 70,
     "defending": 50,
     "physicality": 70,
-    "imageUrl": "https://cdn.sofifa.net/players/default.png"
+    "imageUrl": "https://cdn.futwiz.com/assets/img/fifa23/faces/245367.png"
   },
   {
     "name": "Leonardo Spinazzola",
@@ -3281,7 +3282,7 @@ const PLAYER_DATABASE = [
     "dribbling": 70,
     "defending": 50,
     "physicality": 70,
-    "imageUrl": "https://cdn.sofifa.net/players/default.png"
+    "imageUrl": "https://cdn.futwiz.com/assets/img/fifa23/faces/198008.png"
   },
   {
     "name": "Konrad Laimer",
@@ -3301,7 +3302,7 @@ const PLAYER_DATABASE = [
     "dribbling": 70,
     "defending": 50,
     "physicality": 70,
-    "imageUrl": "https://cdn.sofifa.net/players/default.png"
+    "imageUrl": "https://cdn.futwiz.com/assets/img/fifa23/faces/223959.png"
   },
   {
     "name": "Marco Reus",
@@ -3321,7 +3322,7 @@ const PLAYER_DATABASE = [
     "dribbling": 70,
     "defending": 50,
     "physicality": 70,
-    "imageUrl": "https://cdn.sofifa.net/players/default.png"
+    "imageUrl": "https://cdn.futwiz.com/assets/img/fifa23/faces/188350.png"
   },
   {
     "name": "Chris Smalling",
@@ -3341,7 +3342,7 @@ const PLAYER_DATABASE = [
     "dribbling": 70,
     "defending": 50,
     "physicality": 70,
-    "imageUrl": "https://cdn.sofifa.net/players/default.png"
+    "imageUrl": "https://cdn.futwiz.com/assets/img/fifa23/faces/178603.png"
   },
   {
     "name": "Matthias Ginter",
@@ -3361,7 +3362,7 @@ const PLAYER_DATABASE = [
     "dribbling": 70,
     "defending": 50,
     "physicality": 70,
-    "imageUrl": "https://cdn.sofifa.net/players/default.png"
+    "imageUrl": "https://cdn.futwiz.com/assets/img/fifa23/faces/209293.png"
   },
   {
     "name": "Ricardo Pereira",
@@ -3381,7 +3382,7 @@ const PLAYER_DATABASE = [
     "dribbling": 70,
     "defending": 50,
     "physicality": 70,
-    "imageUrl": "https://cdn.sofifa.net/players/default.png"
+    "imageUrl": "https://cdn.futwiz.com/assets/img/fifa23/faces/208330.png"
   },
   {
     "name": "Leon Bailey",
@@ -3401,7 +3402,7 @@ const PLAYER_DATABASE = [
     "dribbling": 70,
     "defending": 50,
     "physicality": 70,
-    "imageUrl": "https://cdn.sofifa.net/players/default.png"
+    "imageUrl": "https://cdn.futwiz.com/assets/img/fifa23/faces/229906.png"
   },
   {
     "name": "Álex Grimaldo",
@@ -3421,7 +3422,7 @@ const PLAYER_DATABASE = [
     "dribbling": 70,
     "defending": 50,
     "physicality": 70,
-    "imageUrl": "https://cdn.sofifa.net/players/default.png"
+    "imageUrl": "https://cdn.futwiz.com/assets/img/fifa23/faces/210035.png"
   },
   {
     "name": "José Gayà",
@@ -3441,7 +3442,7 @@ const PLAYER_DATABASE = [
     "dribbling": 70,
     "defending": 50,
     "physicality": 70,
-    "imageUrl": "https://cdn.sofifa.net/players/default.png"
+    "imageUrl": "https://cdn.futwiz.com/assets/img/fifa23/faces/216267.png"
   },
   {
     "name": "Ollie Watkins",
@@ -3461,7 +3462,7 @@ const PLAYER_DATABASE = [
     "dribbling": 70,
     "defending": 50,
     "physicality": 70,
-    "imageUrl": "https://cdn.sofifa.net/players/default.png"
+    "imageUrl": "https://cdn.futwiz.com/assets/img/fifa23/faces/231677.png"
   },
   {
     "name": "Ben White",
@@ -3481,7 +3482,7 @@ const PLAYER_DATABASE = [
     "dribbling": 70,
     "defending": 50,
     "physicality": 70,
-    "imageUrl": "https://cdn.sofifa.net/players/default.png"
+    "imageUrl": "https://cdn.futwiz.com/assets/img/fifa23/faces/233064.png"
   },
   {
     "name": "Idrissa Gueye",
@@ -3501,7 +3502,7 @@ const PLAYER_DATABASE = [
     "dribbling": 70,
     "defending": 50,
     "physicality": 70,
-    "imageUrl": "https://cdn.sofifa.net/players/default.png"
+    "imageUrl": "https://cdn.futwiz.com/assets/img/fifa23/faces/183907.png"
   },
   {
     "name": "Lucas Moura",
@@ -3521,7 +3522,7 @@ const PLAYER_DATABASE = [
     "dribbling": 70,
     "defending": 50,
     "physicality": 70,
-    "imageUrl": "https://cdn.sofifa.net/players/default.png"
+    "imageUrl": "https://cdn.futwiz.com/assets/img/fifa23/faces/181848.png"
   },
   {
     "name": "Anthony Martial",
@@ -3541,7 +3542,7 @@ const PLAYER_DATABASE = [
     "dribbling": 70,
     "defending": 50,
     "physicality": 70,
-    "imageUrl": "https://cdn.sofifa.net/players/default.png"
+    "imageUrl": "https://cdn.futwiz.com/assets/img/fifa23/faces/211300.png"
   },
   {
     "name": "Ante Rebić",
@@ -3561,7 +3562,7 @@ const PLAYER_DATABASE = [
     "dribbling": 70,
     "defending": 50,
     "physicality": 70,
-    "imageUrl": "https://cdn.sofifa.net/players/default.png"
+    "imageUrl": "https://cdn.futwiz.com/assets/img/fifa23/faces/206495.png"
   },
   {
     "name": "Conor Coady",
@@ -3581,7 +3582,7 @@ const PLAYER_DATABASE = [
     "dribbling": 70,
     "defending": 50,
     "physicality": 70,
-    "imageUrl": "https://cdn.sofifa.net/players/default.png"
+    "imageUrl": "https://cdn.futwiz.com/assets/img/fifa23/faces/184941.png"
   },
   {
     "name": "Wout Weghorst",
@@ -3601,7 +3602,7 @@ const PLAYER_DATABASE = [
     "dribbling": 70,
     "defending": 50,
     "physicality": 70,
-    "imageUrl": "https://cdn.sofifa.net/players/default.png"
+    "imageUrl": "https://cdn.futwiz.com/assets/img/fifa23/faces/223660.png"
   },
   {
     "name": "Roger Ibañez",
@@ -3621,7 +3622,7 @@ const PLAYER_DATABASE = [
     "dribbling": 70,
     "defending": 50,
     "physicality": 70,
-    "imageUrl": "https://cdn.sofifa.net/players/default.png"
+    "imageUrl": "https://cdn.futwiz.com/assets/img/fifa23/faces/234234.png"
   },
   {
     "name": "Taiwo Awoniyi",
@@ -3641,7 +3642,7 @@ const PLAYER_DATABASE = [
     "dribbling": 70,
     "defending": 50,
     "physicality": 70,
-    "imageUrl": "https://cdn.sofifa.net/players/default.png"
+    "imageUrl": "https://cdn.futwiz.com/assets/img/fifa23/faces/231677.png"
   },
   {
     "name": "Manuel Ugarte",
@@ -3661,8 +3662,8 @@ const PLAYER_DATABASE = [
     "dribbling": 70,
     "defending": 50,
     "physicality": 70,
-    "imageUrl": "https://cdn.sofifa.net/players/default.png"
+    "imageUrl": "https://cdn.futwiz.com/assets/img/fifa23/faces/256630.png"
   }
 ];
 
-export default PLAYER_DATABASE;
+export { PLAYER_DATABASE };

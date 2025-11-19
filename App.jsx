@@ -426,7 +426,7 @@ function App() {
         isActive = false;
       };
     }
-  }, [auction?.status, auctionRoomId, isAdmin]); // Removed timer from dependencies to prevent infinite loop
+  }, [auction?.status, auctionRoomId, isAdmin, timer, auction?.isPaused]); // Added timer to dependencies so it restarts when timer changes
 
   // Chat messages listener
   useEffect(() => {

@@ -399,25 +399,28 @@ function App() {
           
           console.log('⏰ Timer reached 0, ending auction...');
           
-          // Call endAuction and handle any errors
-          try {
-            await endAuction();
-            console.log('✅ Auction ended successfully');
-          } catch (error) {
-            console.error('❌ Error in timer endAuction call:', error);
-            showError('Failed to end auction automatically. Please use the "End Current Auction" button.');
-            
-            // Force update the auction status to prevent stuck state
+          // Call endAuction directly without checking stale state
+          // endAuction() will fetch fresh data from Firebase
+          setTimeout(async () => {
             try {
-              const auctionRef = doc(db, 'auctions', auctionRoomId);
-              await updateDoc(auctionRef, { 
-                status: 'unsold',
-                timer: 0 
-              });
-            } catch (updateError) {
-              console.error('Failed to force update auction status:', updateError);
+              await endAuction();
+              console.log('✅ Auction ended successfully');
+            } catch (error) {
+              console.error('❌ Error in timer endAuction call:', error);
+              showError('Failed to end auction automatically. Please use the "End Current Auction" button.');
+              
+              // Force update the auction status to prevent stuck state
+              try {
+                const auctionRef = doc(db, 'auctions', auctionRoomId);
+                await updateDoc(auctionRef, { 
+                  status: 'unsold',
+                  timer: 0 
+                });
+              } catch (updateError) {
+                console.error('Failed to force update auction status:', updateError);
+              }
             }
-          }
+          }, 100); // Small delay to ensure state is updated
         }
       }, 1000);
 
@@ -1674,25 +1677,31 @@ function App() {
 
   const endAuction = async () => {
     try {
-      if (!auction || !auction.currentPlayer) {
-        console.error('endAuction called with no auction or player');
-        showError('No active auction to end');
-        return;
-      }
-      
-      // Prevent multiple simultaneous calls
-      if (auction.status !== 'bidding') {
-        console.log('Auction already ended, status:', auction.status);
-        return;
-      }
-      
-      console.log('Ending auction for:', auction.currentPlayer.name, 'Status:', auction.status);
-      
       const auctionRef = doc(db, 'auctions', auctionRoomId);
       
       // Get fresh auction data from Firebase to avoid stale state
       const freshAuctionDoc = await getDoc(auctionRef);
+      if (!freshAuctionDoc.exists()) {
+        console.error('Auction document not found');
+        showError('Auction not found');
+        return;
+      }
+      
       const freshAuction = freshAuctionDoc.data();
+      
+      if (!freshAuction.currentPlayer) {
+        console.error('No current player in auction');
+        showError('No active auction to end');
+        return;
+      }
+      
+      // Prevent multiple simultaneous calls - check fresh data
+      if (freshAuction.status !== 'bidding') {
+        console.log('Auction already ended, status:', freshAuction.status);
+        return;
+      }
+      
+      console.log('Ending auction for:', freshAuction.currentPlayer.name, 'Status:', freshAuction.status);
       
       console.log('Fresh auction data:', {
         highestBidder: freshAuction.highestBidder,

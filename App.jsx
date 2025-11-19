@@ -1079,9 +1079,41 @@ function App() {
     return Math.round(totalRating / team.length);
   };
   
+  const calculateTeamStats = (team) => {
+    if (!team || team.length === 0) return { pace: 0, shooting: 0, passing: 0, dribbling: 0, defending: 0, physicality: 0 };
+    
+    const stats = {
+      pace: 0,
+      shooting: 0,
+      passing: 0,
+      dribbling: 0,
+      defending: 0,
+      physicality: 0
+    };
+    
+    team.forEach(player => {
+      stats.pace += player.pace || 0;
+      stats.shooting += player.shooting || 0;
+      stats.passing += player.passing || 0;
+      stats.dribbling += player.dribbling || 0;
+      stats.defending += player.defending || 0;
+      stats.physicality += player.physicality || 0;
+    });
+    
+    const teamSize = team.length;
+    return {
+      pace: Math.round(stats.pace / teamSize),
+      shooting: Math.round(stats.shooting / teamSize),
+      passing: Math.round(stats.passing / teamSize),
+      dribbling: Math.round(stats.dribbling / teamSize),
+      defending: Math.round(stats.defending / teamSize),
+      physicality: Math.round(stats.physicality / teamSize)
+    };
+  };
+  
   const calculateTeamValue = (team) => {
     if (!team || team.length === 0) return 0;
-    return team.reduce((sum, player) => sum + (player.purchasePrice || 0), 0);
+    return team.reduce((sum, player) => sum + (player.purchasePrice || player.currentPrice || 0), 0);
   };
   
   const calculateWinner = (users) => {
@@ -1099,11 +1131,36 @@ function App() {
       }
     }
     
+    const budgetSpent = (auction?.initialBudget || 1000) - bestUser.budget;
+    
     return {
       name: bestUser.name,
       teamRating: bestRating,
-      budgetEfficiency: Math.round((bestRating / ((auction?.initialBudget || 1000) - bestUser.budget)) * 100)
+      budgetEfficiency: budgetSpent > 0 ? (bestRating / budgetSpent).toFixed(2) : 0
     };
+  };
+  
+  const generateLeaderboard = () => {
+    if (!users || users.length === 0) return [];
+    
+    return users
+      .filter(u => u.team && u.team.length > 0)
+      .map(u => {
+        const teamStats = calculateTeamStats(u.team);
+        const teamRating = calculateTeamRating(u.team);
+        const budgetSpent = (auction?.initialBudget || 1000) - u.budget;
+        
+        return {
+          name: u.name,
+          teamSize: u.team.length,
+          teamRating: teamRating,
+          budgetSpent: budgetSpent,
+          budgetRemaining: u.budget,
+          efficiency: budgetSpent > 0 ? (teamRating / budgetSpent).toFixed(2) : 0,
+          stats: teamStats
+        };
+      })
+      .sort((a, b) => b.teamRating - a.teamRating);
   };
 
   // Export Team as Image
@@ -2624,6 +2681,19 @@ function App() {
               </button>
             </div>
 
+            {/* Leaderboard Button */}
+            <div className="bg-gradient-to-br from-gray-800 to-gray-900 rounded-lg p-3 md:p-4 shadow-xl border border-gray-700 mb-3 md:mb-4">
+              <button
+                onClick={() => {
+                  setLeaderboardData(generateLeaderboard());
+                  setShowLeaderboard(true);
+                }}
+                className="w-full bg-gradient-to-r from-yellow-600 to-orange-600 hover:from-yellow-700 hover:to-orange-700 px-4 py-3 rounded-lg text-white font-semibold shadow-lg hover:shadow-xl transition-all"
+              >
+                🏆 Leaderboard
+              </button>
+            </div>
+
             {/* All Participants */}
             <div className="bg-gradient-to-br from-gray-800 to-gray-900 rounded-lg p-3 md:p-4 shadow-xl border border-gray-700">
               <h3 className="text-base md:text-lg font-bold mb-3 md:mb-4 text-blue-400">Participants ({users.length})</h3>
@@ -2785,6 +2855,111 @@ function App() {
                   Send
                 </button>
               </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Leaderboard Modal */}
+      {showLeaderboard && (
+        <div className="fixed inset-0 bg-black bg-opacity-70 backdrop-blur-sm flex items-center justify-center p-3 md:p-4 z-50">
+          <div className="bg-gradient-to-br from-gray-800 to-gray-900 rounded-xl max-w-5xl w-full max-h-[90vh] overflow-y-auto shadow-2xl border border-gray-700">
+            <div className="sticky top-0 bg-gray-800/95 backdrop-blur-sm flex justify-between items-center p-4 md:p-6 border-b border-gray-700 z-10">
+              <h2 className="text-xl md:text-2xl font-bold text-yellow-400">🏆 Leaderboard</h2>
+              <button
+                onClick={() => setShowLeaderboard(false)}
+                className="text-gray-400 hover:text-white text-2xl w-8 h-8 flex items-center justify-center hover:bg-gray-700 rounded-lg transition-colors"
+              >
+                ×
+              </button>
+            </div>
+            
+            <div className="p-4 md:p-6">
+              {leaderboardData.length === 0 ? (
+                <div className="text-center py-12 text-gray-400">
+                  <p>No teams to display yet</p>
+                  <p className="text-sm mt-2">Start bidding to see rankings!</p>
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  {leaderboardData.map((entry, index) => (
+                    <div
+                      key={index}
+                      className={`bg-gradient-to-r ${
+                        index === 0 ? 'from-yellow-900/50 to-gray-800 border-yellow-500' :
+                        index === 1 ? 'from-gray-700/50 to-gray-800 border-gray-400' :
+                        index === 2 ? 'from-orange-900/50 to-gray-800 border-orange-600' :
+                        'from-gray-700 to-gray-800 border-gray-600'
+                      } border-l-4 rounded-lg p-4 shadow-lg`}
+                    >
+                      <div className="flex items-center justify-between mb-3">
+                        <div className="flex items-center gap-3">
+                          <div className={`text-3xl font-bold ${
+                            index === 0 ? 'text-yellow-400' :
+                            index === 1 ? 'text-gray-300' :
+                            index === 2 ? 'text-orange-400' :
+                            'text-gray-500'
+                          }`}>
+                            {index === 0 ? '🥇' : index === 1 ? '🥈' : index === 2 ? '🥉' : `#${index + 1}`}
+                          </div>
+                          <div>
+                            <h3 className="text-xl font-bold text-white">{entry.name}</h3>
+                            <p className="text-sm text-gray-300">{entry.teamSize}/11 Players</p>
+                          </div>
+                        </div>
+                        <div className="text-right">
+                          <p className="text-2xl font-bold text-yellow-400">{entry.teamRating}</p>
+                          <p className="text-xs text-gray-400">Avg Rating</p>
+                        </div>
+                      </div>
+                      
+                      {/* Team Stats */}
+                      <div className="grid grid-cols-3 md:grid-cols-6 gap-2 mb-3">
+                        <div className="bg-gray-700/50 rounded p-2 text-center">
+                          <p className="text-xs text-gray-400">PAC</p>
+                          <p className="text-sm font-bold text-green-400">{entry.stats.pace}</p>
+                        </div>
+                        <div className="bg-gray-700/50 rounded p-2 text-center">
+                          <p className="text-xs text-gray-400">SHO</p>
+                          <p className="text-sm font-bold text-red-400">{entry.stats.shooting}</p>
+                        </div>
+                        <div className="bg-gray-700/50 rounded p-2 text-center">
+                          <p className="text-xs text-gray-400">PAS</p>
+                          <p className="text-sm font-bold text-yellow-400">{entry.stats.passing}</p>
+                        </div>
+                        <div className="bg-gray-700/50 rounded p-2 text-center">
+                          <p className="text-xs text-gray-400">DRI</p>
+                          <p className="text-sm font-bold text-purple-400">{entry.stats.dribbling}</p>
+                        </div>
+                        <div className="bg-gray-700/50 rounded p-2 text-center">
+                          <p className="text-xs text-gray-400">DEF</p>
+                          <p className="text-sm font-bold text-blue-400">{entry.stats.defending}</p>
+                        </div>
+                        <div className="bg-gray-700/50 rounded p-2 text-center">
+                          <p className="text-xs text-gray-400">PHY</p>
+                          <p className="text-sm font-bold text-orange-400">{entry.stats.physicality}</p>
+                        </div>
+                      </div>
+                      
+                      {/* Budget Info */}
+                      <div className="flex justify-between items-center pt-2 border-t border-gray-600">
+                        <div>
+                          <p className="text-xs text-gray-400">Budget Spent</p>
+                          <p className="text-sm font-bold text-red-400">{entry.budgetSpent}M</p>
+                        </div>
+                        <div>
+                          <p className="text-xs text-gray-400">Remaining</p>
+                          <p className="text-sm font-bold text-green-400">{entry.budgetRemaining}M</p>
+                        </div>
+                        <div>
+                          <p className="text-xs text-gray-400">Efficiency</p>
+                          <p className="text-sm font-bold text-yellow-400">{entry.efficiency}</p>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
           </div>
         </div>

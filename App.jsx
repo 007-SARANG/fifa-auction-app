@@ -154,6 +154,12 @@ function App() {
   
   // Firebase quota warning
   const [showQuotaWarning, setShowQuotaWarning] = useState(false);
+  
+  // Pause functionality
+  const [isPaused, setIsPaused] = useState(false);
+  
+  // Password for user authentication
+  const [userPassword, setUserPassword] = useState('');
 
   // Initialize sample data - OPTIMIZED: Only add players when auction starts
   const initializeSampleData = useCallback(async () => {
@@ -334,8 +340,8 @@ function App() {
 
   // Timer countdown - OPTIMIZED: Local timer, sync only every 5 seconds
   useEffect(() => {
-    // Only start timer if we're in bidding state with a positive timer
-    if (auction?.status === 'bidding' && auctionRoomId && isAdmin && timer > 0) {
+    // Only start timer if we're in bidding state with a positive timer and not paused
+    if (auction?.status === 'bidding' && auctionRoomId && isAdmin && timer > 0 && !auction?.isPaused) {
       let localTimer = timer;
       let syncCounter = 0;
       let isActive = true; // Flag to prevent state updates after unmount
@@ -406,6 +412,11 @@ function App() {
       return;
     }
     
+    if (!userPassword.trim()) {
+      showError('Please enter your password');
+      return;
+    }
+    
     if (!user) {
       showError('Authentication required. Please refresh the page.');
       return;
@@ -418,42 +429,66 @@ function App() {
         console.log('Reset isLeavingRoom flag');
       }
       
-      const userRef = doc(db, 'users', user.uid);
+      // Create a unique user ID based on name+password hash
+      const userIdentifier = `${userName.trim().toLowerCase()}_${btoa(userPassword)}`;
+      const usersCollection = collection(db, 'users');
+      const q = query(usersCollection, where('userIdentifier', '==', userIdentifier));
+      const querySnapshot = await getDocs(q);
       
-      if (currentUser) {
-        // Updating existing user's name
-        await updateDoc(userRef, {
-          name: userName.trim()
+      let existingUserDoc = null;
+      querySnapshot.forEach((doc) => {
+        existingUserDoc = { id: doc.id, ...doc.data() };
+      });
+      
+      if (existingUserDoc) {
+        // User exists - log them back in with their existing data
+        console.log('Existing user found, logging in:', existingUserDoc);
+        
+        // Update the Firebase Auth UID to current session
+        const userRef = doc(db, 'users', user.uid);
+        await setDoc(userRef, {
+          ...existingUserDoc,
+          lastLoginAt: Date.now()
         });
         
         setCurrentUser({
-          ...currentUser,
-          name: userName.trim()
+          id: user.uid,
+          ...existingUserDoc,
+          lastLoginAt: Date.now()
         });
+        
+        showSuccess(`Welcome back, ${existingUserDoc.name}! Your team has been restored.`);
       } else {
-        // New user - create document (OPTIMIZED: removed isOnline field)
+        // New user - create document
+        const userRef = doc(db, 'users', user.uid);
         await setDoc(userRef, {
           name: userName.trim(),
+          userIdentifier: userIdentifier,
           budget: initialBudget,
           team: [],
           joinedAt: Date.now(),
+          lastLoginAt: Date.now(),
           auctionRoomId: null
         });
         
         setCurrentUser({
           id: user.uid,
           name: userName.trim(),
+          userIdentifier: userIdentifier,
           budget: initialBudget,
           team: [],
           joinedAt: Date.now(),
+          lastLoginAt: Date.now(),
           auctionRoomId: null
         });
+        
+        showSuccess('Account created successfully!');
       }
       
       setShowNameInput(false);
       setShowAuctionMenu(true);
-      setUserName(''); // Clear the input
-      showSuccess(`Name ${currentUser ? 'updated' : 'saved'} successfully!`);
+      setUserName('');
+      setUserPassword(''); // Clear password input
     } catch (error) {
       console.error('Error saving user name:', error);
       
@@ -862,6 +897,43 @@ function App() {
     }
   };
 
+  // Pause/Resume auction functions
+  const pauseAuction = async () => {
+    if (!isAdmin) {
+      showError('Only the host can pause the auction');
+      return;
+    }
+    
+    try {
+      const auctionRef = doc(db, 'auctions', auctionRoomId);
+      await updateDoc(auctionRef, {
+        isPaused: true
+      });
+      showSuccess('Auction paused');
+    } catch (error) {
+      console.error('Error pausing auction:', error);
+      showError('Failed to pause auction');
+    }
+  };
+
+  const resumeAuction = async () => {
+    if (!isAdmin) {
+      showError('Only the host can resume the auction');
+      return;
+    }
+    
+    try {
+      const auctionRef = doc(db, 'auctions', auctionRoomId);
+      await updateDoc(auctionRef, {
+        isPaused: false
+      });
+      showSuccess('Auction resumed');
+    } catch (error) {
+      console.error('Error resuming auction:', error);
+      showError('Failed to resume auction');
+    }
+  };
+
   // Load available auction rooms
   useEffect(() => {
     if (showAuctionMenu) {
@@ -975,8 +1047,16 @@ function App() {
         }
       }
       
-      // Select highest rated player from available players in current phase (already sorted descending)
-      const selectedPlayer = availablePlayers[0]; // First player = highest rating
+      // Select player based on phase
+      let selectedPlayer;
+      if (currentAuctionPhase === 'premium') {
+        // For 85+ players, select randomly instead of by rating
+        const randomIndex = Math.floor(Math.random() * availablePlayers.length);
+        selectedPlayer = availablePlayers[randomIndex];
+      } else {
+        // For other phases, select highest rated player
+        selectedPlayer = availablePlayers[0]; // First player = highest rating
+      }
       const basePrice = getBasePrice(selectedPlayer.rating);
       
       // Update auction state
@@ -1089,12 +1169,18 @@ function App() {
       const auctionRef = doc(db, 'auctions', auctionRoomId);
       const newBidders = [...new Set([...(auction.bidders || []), user.uid])];
       
+      // Get current timer and add 10 seconds (don't reset, just add)
+      const currentTimer = timer || 0;
+      const newTimer = currentTimer + 10;
+      
       await updateDoc(auctionRef, {
         currentBid: bid,
         highestBidder: user.uid,
         bidders: newBidders,
-        timer: 15 // Reset timer to 15 seconds
+        timer: newTimer // Add 10 seconds to current timer
       });
+      
+      setTimer(newTimer); // Update local state immediately
       
       // Remove bid logging to reduce Firebase writes
       // await addActivityLog(...)
@@ -1357,41 +1443,60 @@ function App() {
             </div>
           )}
           
-          <h2 className="text-2xl font-bold text-green-400 mb-6 text-center">
-            {currentUser ? 'Change Your Name' : 'Welcome to FIFA 23 Auction!'}
+          <h2 className="text-2xl font-bold text-green-400 mb-6 text-center animate-pulse">
+            {currentUser ? 'Change Your Name' : '⚽ Welcome to FIFA 23 Auction! ⚽'}
           </h2>
-          <p className="text-gray-300 mb-4 text-center">
-            {currentUser ? 'Enter your new name:' : 'Enter your name to get started:'}
+          <p className="text-gray-300 mb-6 text-center text-sm">
+            {currentUser ? 'Enter your new credentials:' : 'Login or Create Account - Your progress will be saved!'}
           </p>
           
-          <input
-            type="text"
-            value={userName}
-            onChange={(e) => setUserName(e.target.value)}
-            placeholder="Your name"
-            className="w-full bg-gray-700 text-white p-3 rounded-lg border border-gray-600 focus:border-green-400 focus:outline-none mb-4"
-            onKeyPress={(e) => e.key === 'Enter' && submitUserName()}
-          />
+          <div className="space-y-4">
+            <div>
+              <label className="block text-gray-400 text-sm font-semibold mb-2">Username</label>
+              <input
+                type="text"
+                value={userName}
+                onChange={(e) => setUserName(e.target.value)}
+                placeholder="Enter your username"
+                className="w-full bg-gray-700 text-white p-3 rounded-lg border-2 border-gray-600 focus:border-green-400 focus:outline-none transition-all"
+                onKeyPress={(e) => e.key === 'Enter' && submitUserName()}
+              />
+            </div>
+            
+            <div>
+              <label className="block text-gray-400 text-sm font-semibold mb-2">Password</label>
+              <input
+                type="password"
+                value={userPassword}
+                onChange={(e) => setUserPassword(e.target.value)}
+                placeholder="Enter your password"
+                className="w-full bg-gray-700 text-white p-3 rounded-lg border-2 border-gray-600 focus:border-green-400 focus:outline-none transition-all"
+                onKeyPress={(e) => e.key === 'Enter' && submitUserName()}
+              />
+              <p className="text-gray-500 text-xs mt-2">💡 Use the same username + password to recover your team if you leave</p>
+            </div>
+          </div>
           
-          <div className="flex gap-3">
+          <div className="flex gap-3 mt-6">
             {currentUser && (
               <button
                 onClick={() => {
                   setShowNameInput(false);
                   setShowAuctionMenu(true);
                   setUserName('');
+                  setUserPassword('');
                 }}
-                className="flex-1 bg-gray-600 hover:bg-gray-700 py-3 rounded-lg font-bold transition-colors"
+                className="flex-1 bg-gray-600 hover:bg-gray-700 py-3 rounded-lg font-bold transition-all transform hover:scale-105"
               >
                 Cancel
               </button>
             )}
             <button
               onClick={submitUserName}
-              disabled={!userName.trim()}
-              className={`${currentUser ? 'flex-1' : 'w-full'} bg-green-600 hover:bg-green-700 disabled:bg-gray-600 disabled:cursor-not-allowed py-3 rounded-lg font-bold transition-colors`}
+              disabled={!userName.trim() || !userPassword.trim()}
+              className={`${currentUser ? 'flex-1' : 'w-full'} bg-gradient-to-r from-green-600 to-green-700 hover:from-green-700 hover:to-green-800 disabled:from-gray-600 disabled:to-gray-700 disabled:cursor-not-allowed py-3 rounded-lg font-bold transition-all transform hover:scale-105 shadow-lg`}
             >
-              {currentUser ? 'Update Name' : 'Continue'}
+              {currentUser ? 'Update' : '🚀 Login / Sign Up'}
             </button>
           </div>
           
@@ -1612,8 +1717,8 @@ function App() {
           {/* Desktop Header */}
           <div className="hidden md:flex justify-between items-center">
             <div>
-              <h1 className="text-2xl font-bold text-green-400">FIFA 23 Friends Auction</h1>
-              <p className="text-gray-300 text-sm">{auction?.roomName || 'Auction Room'}</p>
+              <h1 className="text-2xl font-bold bg-gradient-to-r from-green-400 to-blue-500 bg-clip-text text-transparent animate-pulse">⚽ FIFA 23 Friends Auction ⚽</h1>
+              <p className="text-gray-300 text-sm">🏆 {auction?.roomName || 'Auction Room'}</p>
             </div>
             <div className="flex items-center gap-3">
               <button
@@ -1692,17 +1797,17 @@ function App() {
                 <div className="flex flex-col md:flex-row gap-4 md:gap-6 mb-4 md:mb-6">
                   {/* Player Image */}
                   <div className="flex-shrink-0 mx-auto md:mx-0">
-                    <div className="relative">
+                    <div className="relative transform hover:scale-110 transition-transform duration-300">
                       <img 
                         src={auction.currentPlayer.imageUrl} 
                         alt={auction.currentPlayer.name}
-                        className="w-32 h-40 md:w-48 md:h-64 object-cover rounded-lg shadow-lg ring-2 ring-green-500"
+                        className="w-32 h-40 md:w-48 md:h-64 object-cover rounded-lg shadow-2xl ring-4 ring-green-500 hover:ring-green-400 transition-all animate-fade-in"
                         onError={(e) => {
                           e.target.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(auction.currentPlayer.name)}&size=200&background=1f2937&color=ffffff&format=png&bold=true`;
                         }}
                       />
                       {/* Rating Badge */}
-                      <div className="absolute -top-2 -right-2 bg-yellow-500 text-black font-bold text-lg md:text-xl rounded-full w-10 h-10 md:w-12 md:h-12 flex items-center justify-center shadow-lg border-2 border-yellow-300">
+                      <div className="absolute -top-2 -right-2 bg-gradient-to-br from-yellow-400 to-yellow-600 text-black font-bold text-lg md:text-xl rounded-full w-10 h-10 md:w-12 md:h-12 flex items-center justify-center shadow-2xl border-2 border-yellow-300 animate-pulse">
                         {auction.currentPlayer.rating}
                       </div>
                     </div>
@@ -1777,13 +1882,25 @@ function App() {
                   </div>
                 </div>
 
+                {/* Pause Indicator */}
+                {auction?.isPaused && (
+                  <div className="mb-4 bg-gradient-to-r from-orange-600 via-orange-500 to-orange-600 rounded-xl p-4 md:p-6 text-center shadow-2xl border-4 border-orange-400 animate-pulse">
+                    <h2 className="text-2xl md:text-4xl font-black text-white mb-2 drop-shadow-lg">
+                      ⏸️ AUCTION PAUSED ⏸️
+                    </h2>
+                    <p className="text-base md:text-xl font-semibold text-white">
+                      Waiting for host to resume...
+                    </p>
+                  </div>
+                )}
+
                 {/* Auction Info - Mobile Optimized */}
                 <div className="bg-gradient-to-br from-gray-700 to-gray-800 rounded-lg shadow-xl p-3 md:p-4 mb-4 md:mb-6 border border-gray-600">
                   <div className="grid grid-cols-2 gap-3 md:gap-4 mb-3 md:mb-4">
                     {/* Current Bid */}
-                    <div className="bg-gray-800 rounded-lg p-3 text-center">
+                    <div className="bg-gray-800 rounded-lg p-3 text-center transform hover:scale-105 transition-transform">
                       <h3 className="text-xs md:text-sm font-semibold text-gray-400 mb-1">Current Bid</h3>
-                      <p className="text-2xl md:text-3xl font-bold text-green-400">{auction.currentBid}M</p>
+                      <p className="text-2xl md:text-3xl font-bold text-green-400 animate-pulse">{auction.currentBid}M</p>
                       {auction.highestBidder && (
                         <p className="text-xs md:text-sm text-gray-300 truncate mt-1">
                           {users.find(u => u.id === auction.highestBidder)?.name || 'Unknown'}
@@ -1792,7 +1909,7 @@ function App() {
                     </div>
                     
                     {/* Timer */}
-                    <div className="bg-gray-800 rounded-lg p-3 text-center">
+                    <div className="bg-gray-800 rounded-lg p-3 text-center transform hover:scale-105 transition-transform">
                       <h3 className="text-xs md:text-sm font-semibold text-gray-400 mb-1">Time Left</h3>
                       <p className={`text-3xl md:text-4xl font-bold ${
                         timer <= 5 ? 'text-red-400 animate-pulse' : 
@@ -1819,25 +1936,25 @@ function App() {
 
                 {/* PROMINENT SOLD/UNSOLD BANNER */}
                 {auction.status === 'sold' && (
-                  <div className="mt-4 bg-gradient-to-r from-blue-600 via-blue-500 to-blue-600 rounded-xl p-6 md:p-8 text-center shadow-2xl border-4 border-blue-400 animate-pulse">
-                    <h2 className="text-3xl md:text-5xl font-black text-white mb-2 drop-shadow-lg">
+                  <div className="mt-4 bg-gradient-to-r from-blue-600 via-blue-500 to-blue-600 rounded-xl p-6 md:p-8 text-center shadow-2xl border-4 border-blue-400 animate-pulse transform hover:scale-105 transition-transform">
+                    <h2 className="text-3xl md:text-5xl font-black text-white mb-2 drop-shadow-lg animate-bounce">
                       🎉 SOLD! 🎉
                     </h2>
                     <p className="text-xl md:text-3xl font-bold text-blue-100 mb-1">
                       {auction.currentPlayer.name}
                     </p>
                     <p className="text-lg md:text-2xl font-semibold text-white">
-                      Sold to: <span className="text-yellow-300 font-black">{users.find(u => u.id === auction.highestBidder)?.name || 'Unknown'}</span>
+                      Sold to: <span className="text-yellow-300 font-black animate-pulse">{users.find(u => u.id === auction.highestBidder)?.name || 'Unknown'}</span>
                     </p>
-                    <p className="text-2xl md:text-4xl font-black text-green-300 mt-2">
+                    <p className="text-2xl md:text-4xl font-black text-green-300 mt-2 animate-pulse">
                       💰 {auction.currentBid}M
                     </p>
                   </div>
                 )}
 
                 {auction.status === 'unsold' && (
-                  <div className="mt-4 bg-gradient-to-r from-red-600 via-red-500 to-red-600 rounded-xl p-6 md:p-8 text-center shadow-2xl border-4 border-red-400 animate-pulse">
-                    <h2 className="text-3xl md:text-5xl font-black text-white mb-2 drop-shadow-lg">
+                  <div className="mt-4 bg-gradient-to-r from-red-600 via-red-500 to-red-600 rounded-xl p-6 md:p-8 text-center shadow-2xl border-4 border-red-400 animate-pulse transform hover:scale-105 transition-transform">
+                    <h2 className="text-3xl md:text-5xl font-black text-white mb-2 drop-shadow-lg animate-bounce">
                       ❌ UNSOLD ❌
                     </h2>
                     <p className="text-xl md:text-3xl font-bold text-red-100">
@@ -1963,6 +2080,25 @@ function App() {
                   >
                     End Current Auction
                   </button>
+                  
+                  {/* Pause/Resume Button */}
+                  {auction?.status === 'bidding' && (
+                    auction?.isPaused ? (
+                      <button
+                        onClick={resumeAuction}
+                        className="bg-gradient-to-r from-green-600 to-green-700 hover:from-green-700 hover:to-green-800 px-4 md:px-6 py-2.5 md:py-3 rounded-lg font-bold transition-all shadow-lg text-sm md:text-base animate-pulse"
+                      >
+                        ▶️ Resume Auction
+                      </button>
+                    ) : (
+                      <button
+                        onClick={pauseAuction}
+                        className="bg-gradient-to-r from-orange-600 to-orange-700 hover:from-orange-700 hover:to-orange-800 px-4 md:px-6 py-2.5 md:py-3 rounded-lg font-bold transition-all shadow-lg text-sm md:text-base"
+                      >
+                        ⏸️ Pause Auction
+                      </button>
+                    )
+                  )}
                   
                   <button
                     onClick={clearAllData}

@@ -3666,4 +3666,4 @@ const PLAYER_DATABASE = [
   }
 ];
 
-export { PLAYER_DATABASE };
+export default PLAYER_DATABASE;

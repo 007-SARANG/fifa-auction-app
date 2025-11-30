@@ -15,7 +15,12 @@ export default {
         'fifa-card': '#2d3748'
       },
       fontFamily: {
-        'fifa': ['Arial', 'sans-serif']
+        'sans': ['Outfit', 'sans-serif'],
+        'fifa': ['Outfit', 'sans-serif']
+      },
+      animation: {
+        'spin-slow': 'spin 3s linear infinite',
+        'pulse-fast': 'pulse 1s cubic-bezier(0.4, 0, 0.6, 1) infinite',
       }
     },
   },

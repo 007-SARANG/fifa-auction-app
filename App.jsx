@@ -44,8 +44,8 @@ const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 const auth = getAuth(app);
 
-// Import the curated FIFA player database (183 players with detailed stats)
-import ALL_FIFA_PLAYERS from './player-database-new.js';
+// Import the EA FC 26 player database (400 players with detailed stats, PlayStyles)
+import ALL_FIFA_PLAYERS from './ea-fc-player-database-detailed.js';
 
 // Real player photo mapping for better images
 const PLAYER_PHOTO_MAP = {
@@ -117,12 +117,9 @@ function getPlayerPhoto(player) {
   return sources[0]; // Return primary source
 }
 
-// Use the curated FIFA player database (183 players with detailed tactical info)
-// Distribution: 12 elite (90+), 58 premium (85-89), 104 regular (80-84), 9 prospects (<80)
-const SAMPLE_PLAYERS = ALL_FIFA_PLAYERS.map(player => ({
-  ...player,
-  imageUrl: player.imageUrl || getPlayerPhoto(player) // Use official photo or fallback
-}));
+// Use the EA FC 26 player database (400 players, 80-91 rated with PlayStyles)
+// New database already has high-quality imageUrl from FutWiz CDN
+const SAMPLE_PLAYERS = ALL_FIFA_PLAYERS;
 
 // Formations Data
 const FORMATIONS = {
@@ -142,6 +139,22 @@ const FORMATIONS = {
       { id: 'st2', label: 'ST', top: '15%', left: '65%' }
     ]
   },
+  '4-4-2-diamond': {
+    name: '4-4-2 Diamond',
+    positions: [
+      { id: 'gk', label: 'GK', top: '85%', left: '50%' },
+      { id: 'lb', label: 'LB', top: '70%', left: '15%' },
+      { id: 'cb1', label: 'CB', top: '75%', left: '35%' },
+      { id: 'cb2', label: 'CB', top: '75%', left: '65%' },
+      { id: 'rb', label: 'RB', top: '70%', left: '85%' },
+      { id: 'cdm', label: 'CDM', top: '58%', left: '50%' },
+      { id: 'lm', label: 'LM', top: '42%', left: '25%' },
+      { id: 'rm', label: 'RM', top: '42%', left: '75%' },
+      { id: 'cam', label: 'CAM', top: '30%', left: '50%' },
+      { id: 'st1', label: 'ST', top: '12%', left: '35%' },
+      { id: 'st2', label: 'ST', top: '12%', left: '65%' }
+    ]
+  },
   '4-3-3': {
     name: '4-3-3 Attack',
     positions: [
@@ -158,24 +171,8 @@ const FORMATIONS = {
       { id: 'rw', label: 'RW', top: '20%', left: '85%' }
     ]
   },
-  '3-5-2': {
-    name: '3-5-2',
-    positions: [
-      { id: 'gk', label: 'GK', top: '85%', left: '50%' },
-      { id: 'cb1', label: 'CB', top: '75%', left: '25%' },
-      { id: 'cb2', label: 'CB', top: '80%', left: '50%' },
-      { id: 'cb3', label: 'CB', top: '75%', left: '75%' },
-      { id: 'cdm1', label: 'CDM', top: '60%', left: '35%' },
-      { id: 'cdm2', label: 'CDM', top: '60%', left: '65%' },
-      { id: 'lm', label: 'LM', top: '40%', left: '10%' },
-      { id: 'cam', label: 'CAM', top: '35%', left: '50%' },
-      { id: 'rm', label: 'RM', top: '40%', left: '90%' },
-      { id: 'st1', label: 'ST', top: '15%', left: '35%' },
-      { id: 'st2', label: 'ST', top: '15%', left: '65%' }
-    ]
-  },
-  '4-3-3': {
-    name: '4-3-3',
+  '4-3-3-flat': {
+    name: '4-3-3 Flat',
     positions: [
       { id: 'gk', label: 'GK', top: '85%', left: '50%' },
       { id: 'lb', label: 'LB', top: '70%', left: '15%' },
@@ -190,6 +187,22 @@ const FORMATIONS = {
       { id: 'rw', label: 'RW', top: '20%', left: '85%' }
     ]
   },
+  '4-3-3-defend': {
+    name: '4-3-3 Holding',
+    positions: [
+      { id: 'gk', label: 'GK', top: '85%', left: '50%' },
+      { id: 'lb', label: 'LB', top: '70%', left: '15%' },
+      { id: 'cb1', label: 'CB', top: '75%', left: '35%' },
+      { id: 'cb2', label: 'CB', top: '75%', left: '65%' },
+      { id: 'rb', label: 'RB', top: '70%', left: '85%' },
+      { id: 'cdm', label: 'CDM', top: '58%', left: '50%' },
+      { id: 'cm1', label: 'CM', top: '45%', left: '30%' },
+      { id: 'cm2', label: 'CM', top: '45%', left: '70%' },
+      { id: 'lw', label: 'LW', top: '22%', left: '15%' },
+      { id: 'st', label: 'ST', top: '12%', left: '50%' },
+      { id: 'rw', label: 'RW', top: '22%', left: '85%' }
+    ]
+  },
   '4-2-3-1': {
     name: '4-2-3-1',
     positions: [
@@ -198,11 +211,123 @@ const FORMATIONS = {
       { id: 'cb1', label: 'CB', top: '75%', left: '35%' },
       { id: 'cb2', label: 'CB', top: '75%', left: '65%' },
       { id: 'rb', label: 'RB', top: '70%', left: '85%' },
-      { id: 'cdm1', label: 'CDM', top: '60%', left: '35%' },
-      { id: 'cdm2', label: 'CDM', top: '60%', left: '65%' },
-      { id: 'cam1', label: 'CAM', top: '40%', left: '20%' },
-      { id: 'cam2', label: 'CAM', top: '40%', left: '50%' },
-      { id: 'cam3', label: 'CAM', top: '40%', left: '80%' },
+      { id: 'cdm1', label: 'CDM', top: '58%', left: '35%' },
+      { id: 'cdm2', label: 'CDM', top: '58%', left: '65%' },
+      { id: 'lam', label: 'LAM', top: '38%', left: '20%' },
+      { id: 'cam', label: 'CAM', top: '35%', left: '50%' },
+      { id: 'ram', label: 'RAM', top: '38%', left: '80%' },
+      { id: 'st', label: 'ST', top: '12%', left: '50%' }
+    ]
+  },
+  '4-1-2-1-2': {
+    name: '4-1-2-1-2 Narrow',
+    positions: [
+      { id: 'gk', label: 'GK', top: '85%', left: '50%' },
+      { id: 'lb', label: 'LB', top: '70%', left: '15%' },
+      { id: 'cb1', label: 'CB', top: '75%', left: '35%' },
+      { id: 'cb2', label: 'CB', top: '75%', left: '65%' },
+      { id: 'rb', label: 'RB', top: '70%', left: '85%' },
+      { id: 'cdm', label: 'CDM', top: '58%', left: '50%' },
+      { id: 'cm1', label: 'CM', top: '45%', left: '30%' },
+      { id: 'cm2', label: 'CM', top: '45%', left: '70%' },
+      { id: 'cam', label: 'CAM', top: '30%', left: '50%' },
+      { id: 'st1', label: 'ST', top: '12%', left: '35%' },
+      { id: 'st2', label: 'ST', top: '12%', left: '65%' }
+    ]
+  },
+  '4-5-1': {
+    name: '4-5-1',
+    positions: [
+      { id: 'gk', label: 'GK', top: '85%', left: '50%' },
+      { id: 'lb', label: 'LB', top: '70%', left: '15%' },
+      { id: 'cb1', label: 'CB', top: '75%', left: '35%' },
+      { id: 'cb2', label: 'CB', top: '75%', left: '65%' },
+      { id: 'rb', label: 'RB', top: '70%', left: '85%' },
+      { id: 'lm', label: 'LM', top: '45%', left: '10%' },
+      { id: 'cm1', label: 'CM', top: '50%', left: '30%' },
+      { id: 'cm2', label: 'CM', top: '50%', left: '50%' },
+      { id: 'cm3', label: 'CM', top: '50%', left: '70%' },
+      { id: 'rm', label: 'RM', top: '45%', left: '90%' },
+      { id: 'st', label: 'ST', top: '15%', left: '50%' }
+    ]
+  },
+  '3-5-2': {
+    name: '3-5-2',
+    positions: [
+      { id: 'gk', label: 'GK', top: '85%', left: '50%' },
+      { id: 'cb1', label: 'CB', top: '75%', left: '25%' },
+      { id: 'cb2', label: 'CB', top: '78%', left: '50%' },
+      { id: 'cb3', label: 'CB', top: '75%', left: '75%' },
+      { id: 'lm', label: 'LM', top: '50%', left: '10%' },
+      { id: 'cm1', label: 'CM', top: '55%', left: '35%' },
+      { id: 'cm2', label: 'CM', top: '55%', left: '65%' },
+      { id: 'rm', label: 'RM', top: '50%', left: '90%' },
+      { id: 'cam', label: 'CAM', top: '35%', left: '50%' },
+      { id: 'st1', label: 'ST', top: '15%', left: '35%' },
+      { id: 'st2', label: 'ST', top: '15%', left: '65%' }
+    ]
+  },
+  '3-4-3': {
+    name: '3-4-3',
+    positions: [
+      { id: 'gk', label: 'GK', top: '85%', left: '50%' },
+      { id: 'cb1', label: 'CB', top: '75%', left: '25%' },
+      { id: 'cb2', label: 'CB', top: '78%', left: '50%' },
+      { id: 'cb3', label: 'CB', top: '75%', left: '75%' },
+      { id: 'lm', label: 'LM', top: '50%', left: '15%' },
+      { id: 'cm1', label: 'CM', top: '52%', left: '38%' },
+      { id: 'cm2', label: 'CM', top: '52%', left: '62%' },
+      { id: 'rm', label: 'RM', top: '50%', left: '85%' },
+      { id: 'lw', label: 'LW', top: '22%', left: '20%' },
+      { id: 'st', label: 'ST', top: '15%', left: '50%' },
+      { id: 'rw', label: 'RW', top: '22%', left: '80%' }
+    ]
+  },
+  '5-3-2': {
+    name: '5-3-2',
+    positions: [
+      { id: 'gk', label: 'GK', top: '85%', left: '50%' },
+      { id: 'lwb', label: 'LWB', top: '65%', left: '10%' },
+      { id: 'cb1', label: 'CB', top: '75%', left: '28%' },
+      { id: 'cb2', label: 'CB', top: '78%', left: '50%' },
+      { id: 'cb3', label: 'CB', top: '75%', left: '72%' },
+      { id: 'rwb', label: 'RWB', top: '65%', left: '90%' },
+      { id: 'cm1', label: 'CM', top: '48%', left: '30%' },
+      { id: 'cm2', label: 'CM', top: '48%', left: '50%' },
+      { id: 'cm3', label: 'CM', top: '48%', left: '70%' },
+      { id: 'st1', label: 'ST', top: '18%', left: '35%' },
+      { id: 'st2', label: 'ST', top: '18%', left: '65%' }
+    ]
+  },
+  '5-2-1-2': {
+    name: '5-2-1-2',
+    positions: [
+      { id: 'gk', label: 'GK', top: '85%', left: '50%' },
+      { id: 'lwb', label: 'LWB', top: '65%', left: '10%' },
+      { id: 'cb1', label: 'CB', top: '75%', left: '28%' },
+      { id: 'cb2', label: 'CB', top: '78%', left: '50%' },
+      { id: 'cb3', label: 'CB', top: '75%', left: '72%' },
+      { id: 'rwb', label: 'RWB', top: '65%', left: '90%' },
+      { id: 'cm1', label: 'CM', top: '52%', left: '35%' },
+      { id: 'cm2', label: 'CM', top: '52%', left: '65%' },
+      { id: 'cam', label: 'CAM', top: '35%', left: '50%' },
+      { id: 'st1', label: 'ST', top: '15%', left: '35%' },
+      { id: 'st2', label: 'ST', top: '15%', left: '65%' }
+    ]
+  },
+  '4-1-4-1': {
+    name: '4-1-4-1',
+    positions: [
+      { id: 'gk', label: 'GK', top: '85%', left: '50%' },
+      { id: 'lb', label: 'LB', top: '70%', left: '15%' },
+      { id: 'cb1', label: 'CB', top: '75%', left: '35%' },
+      { id: 'cb2', label: 'CB', top: '75%', left: '65%' },
+      { id: 'rb', label: 'RB', top: '70%', left: '85%' },
+      { id: 'cdm', label: 'CDM', top: '58%', left: '50%' },
+      { id: 'lm', label: 'LM', top: '40%', left: '15%' },
+      { id: 'cm1', label: 'CM', top: '42%', left: '38%' },
+      { id: 'cm2', label: 'CM', top: '42%', left: '62%' },
+      { id: 'rm', label: 'RM', top: '40%', left: '85%' },
       { id: 'st', label: 'ST', top: '15%', left: '50%' }
     ]
   }
@@ -237,6 +362,7 @@ function App() {
   const [showTeamView, setShowTeamView] = useState(false);
   const [showLogsView, setShowLogsView] = useState(false);
   const [showLeaderboard, setShowLeaderboard] = useState(false);
+  const [showDetailedStats, setShowDetailedStats] = useState(false);
 
   // Squad Builder State
   const [selectedFormation, setSelectedFormation] = useState('4-4-2');
@@ -295,9 +421,10 @@ function App() {
 
   const getPhaseDescription = (phase) => {
     switch (phase) {
-      case 'premium': return '🌟 Premium Phase (85+ Rated)';
-      case 'regular': return '⭐ Regular Phase (83-85 Rated)';
-      case 'free': return '🎁 Free Phase (78-82 Rated)';
+      case 'elite': return '👑 Elite Phase (91+ Rated)';
+      case 'premium': return '🌟 Premium Phase (88-90 Rated)';
+      case 'standard': return '⭐ Standard Phase (85-87 Rated)';
+      case 'free': return '🎁 Free Phase (80-84 Rated)';
       default: return 'Unknown Phase';
     }
   };
@@ -307,9 +434,9 @@ function App() {
     if (dataInitialized) return;
 
     try {
-      // SKIP uploading all 1,521 players to Firebase
+      // SKIP uploading all players to Firebase
       // Players will be added dynamically during auction to save quota
-      console.log(`FIFA 23 player database loaded: ${SAMPLE_PLAYERS.length} players available`);
+      console.log(`EA FC 26 player database loaded: ${SAMPLE_PLAYERS.length} players available`);
 
       setDataInitialized(true);
     } catch (error) {
@@ -782,6 +909,12 @@ function App() {
         return;
       }
 
+      // CRITICAL: Prevent bidding when timer is 0 to avoid race condition
+      if (timer <= 0) {
+        showError('Time is up! Cannot place bid');
+        return;
+      }
+
       const auctionRef = doc(db, 'auctions', auctionRoomId);
       const newBidders = [...new Set([...(auction.bidders || []), currentUser.id])];
 
@@ -866,7 +999,13 @@ function App() {
 
           const winnerData = winnerDoc.data();
           const newBudget = winnerData.budget - auction.currentBid;
-          const newTeam = [...(winnerData.team || []), auction.currentPlayer];
+          // Store player with sold price for display in team view
+          const playerWithPrice = {
+            ...auction.currentPlayer,
+            soldPrice: auction.currentBid,
+            boughtAt: Date.now()
+          };
+          const newTeam = [...(winnerData.team || []), playerWithPrice];
 
           // Update main user doc
           transaction.update(winnerRef, {
@@ -1071,11 +1210,52 @@ function App() {
       let userTeam = [];
       let userRole = 'manager';
 
+      // Check if user is the room creator (host) - they are admin
+      const isRoomCreator = roomData.createdBy === user.uid;
+      
+      // Super admin can join any room directly
+      // Room creator (host) is automatically admin
+      // Others need approval if they don't have existing state
+      if (!isSuperAdmin && !isRoomCreator && !userRoomStateSnap.exists()) {
+        // Send join request instead of joining directly
+        const existingRequests = roomData.joinRequests || [];
+        const alreadyRequested = existingRequests.some(r => r.id === user.uid);
+        
+        if (alreadyRequested) {
+          showError('Join request already sent. Please wait for approval.');
+          setPendingRoomId(roomId);
+          setLoading(false);
+          return;
+        }
+        
+        // Add join request
+        await updateDoc(roomRef, {
+          joinRequests: [...existingRequests, {
+            id: user.uid,
+            name: currentUser?.name || userName,
+            timestamp: Date.now(),
+            customBudget: roomData.initialBudget || 1000
+          }]
+        });
+        
+        showSuccess('Join request sent! Waiting for admin approval.');
+        setPendingRoomId(roomId);
+        setLoading(false);
+        return;
+      }
+
       if (userRoomStateSnap.exists()) {
         const state = userRoomStateSnap.data();
         userBudget = state.budget;
         userTeam = state.team || [];
         userRole = state.role || 'manager';
+      }
+      
+      // Set role based on creator status or super admin
+      if (isRoomCreator) {
+        userRole = 'admin';
+      } else if (isSuperAdmin) {
+        userRole = 'superadmin';
       }
 
       // Update main user doc
@@ -1644,7 +1824,7 @@ function App() {
                           </button>
                         )}
 
-                        {isAdmin && (
+                        {(isSuperAdmin || isAdmin) && (
                           <>
                             <button
                               onClick={() => setShowJoinRequests(true)}
@@ -1760,17 +1940,39 @@ function App() {
                                   <span className="bg-white/10 px-3 py-1 rounded-full text-sm font-bold text-gray-300 border border-white/10">
                                     {auction.currentPlayer.team || auction.currentPlayer.club || 'Free Agent'}
                                   </span>
-                                  <span className={`px-3 py-1 rounded-full text-sm font-bold border ${auction.currentPhase === 'premium' ? 'bg-yellow-500/20 text-yellow-400 border-yellow-500/30' :
-                                    auction.currentPhase === 'gold' ? 'bg-blue-500/20 text-blue-400 border-blue-500/30' :
+                                  {auction.currentPlayer.nation && (
+                                    <span className="bg-white/10 px-3 py-1 rounded-full text-sm font-bold text-emerald-300 border border-white/10">
+                                      {auction.currentPlayer.nation}
+                                    </span>
+                                  )}
+                                  <span className={`px-3 py-1 rounded-full text-sm font-bold border ${
+                                    auction.currentPhase === 'elite' ? 'bg-purple-500/20 text-purple-400 border-purple-500/30' :
+                                    auction.currentPhase === 'premium' ? 'bg-yellow-500/20 text-yellow-400 border-yellow-500/30' :
+                                    auction.currentPhase === 'standard' ? 'bg-blue-500/20 text-blue-400 border-blue-500/30' :
                                       'bg-gray-500/20 text-gray-400 border-gray-500/30'
                                     }`}>
                                     {getPhaseDescription(auction.currentPhase || 'premium')}
                                   </span>
                                 </div>
+                                {/* Weak Foot & Skill Moves */}
+                                {(auction.currentPlayer.weakFoot || auction.currentPlayer.skillMoves) && (
+                                  <div className="flex flex-wrap justify-center md:justify-start gap-3 mt-2">
+                                    {auction.currentPlayer.weakFoot && (
+                                      <span className="text-sm text-gray-300">
+                                        <span className="text-gray-500">WF:</span> <span className="text-yellow-400">{"★".repeat(auction.currentPlayer.weakFoot)}{"☆".repeat(5 - auction.currentPlayer.weakFoot)}</span>
+                                      </span>
+                                    )}
+                                    {auction.currentPlayer.skillMoves && (
+                                      <span className="text-sm text-gray-300">
+                                        <span className="text-gray-500">SM:</span> <span className="text-purple-400">{"★".repeat(auction.currentPlayer.skillMoves)}{"☆".repeat(5 - auction.currentPlayer.skillMoves)}</span>
+                                      </span>
+                                    )}
+                                  </div>
+                                )}
                               </div>
 
                               {/* Stats Grid */}
-                              <div className="grid grid-cols-3 md:grid-cols-6 gap-2 mb-6">
+                              <div className="grid grid-cols-3 md:grid-cols-6 gap-2 mb-2">
                                 {[
                                   { label: 'PAC', val: auction.currentPlayer.pace, color: 'text-yellow-400' },
                                   { label: 'SHO', val: auction.currentPlayer.shooting, color: 'text-red-400' },
@@ -1786,13 +1988,147 @@ function App() {
                                 ))}
                               </div>
 
+                              {/* Toggle Detailed Stats Button */}
+                              <button 
+                                onClick={() => setShowDetailedStats(!showDetailedStats)}
+                                className="w-full mb-4 py-2 text-xs font-bold text-gray-400 hover:text-white bg-white/5 hover:bg-white/10 rounded-lg border border-white/10 transition-all flex items-center justify-center gap-2"
+                              >
+                                {showDetailedStats ? '▲ Hide Detailed Stats' : '▼ Show All 29 Stats'}
+                              </button>
+
+                              {/* Detailed Stats Panel */}
+                              {showDetailedStats && (
+                                <div className="mb-4 bg-black/30 rounded-xl p-4 border border-white/10 animate-fade-in">
+                                  <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                                    {/* Pace Stats */}
+                                    <div className="space-y-1">
+                                      <h4 className="text-xs font-bold text-yellow-400 uppercase tracking-wider border-b border-yellow-400/30 pb-1 mb-2">Pace</h4>
+                                      {[
+                                        { label: 'Acceleration', val: auction.currentPlayer.acceleration },
+                                        { label: 'Sprint Speed', val: auction.currentPlayer.sprintSpeed }
+                                      ].map((s, i) => (
+                                        <div key={i} className="flex justify-between items-center">
+                                          <span className="text-xs text-gray-400">{s.label}</span>
+                                          <span className={`text-sm font-bold ${s.val >= 85 ? 'text-green-400' : s.val >= 70 ? 'text-yellow-400' : 'text-red-400'}`}>{s.val || '-'}</span>
+                                        </div>
+                                      ))}
+                                    </div>
+
+                                    {/* Shooting Stats */}
+                                    <div className="space-y-1">
+                                      <h4 className="text-xs font-bold text-red-400 uppercase tracking-wider border-b border-red-400/30 pb-1 mb-2">Shooting</h4>
+                                      {[
+                                        { label: 'Positioning', val: auction.currentPlayer.positioning },
+                                        { label: 'Finishing', val: auction.currentPlayer.finishing },
+                                        { label: 'Shot Power', val: auction.currentPlayer.shotPower },
+                                        { label: 'Long Shots', val: auction.currentPlayer.longShots },
+                                        { label: 'Volleys', val: auction.currentPlayer.volleys },
+                                        { label: 'Penalties', val: auction.currentPlayer.penalties }
+                                      ].map((s, i) => (
+                                        <div key={i} className="flex justify-between items-center">
+                                          <span className="text-xs text-gray-400">{s.label}</span>
+                                          <span className={`text-sm font-bold ${s.val >= 85 ? 'text-green-400' : s.val >= 70 ? 'text-yellow-400' : 'text-red-400'}`}>{s.val || '-'}</span>
+                                        </div>
+                                      ))}
+                                    </div>
+
+                                    {/* Passing Stats */}
+                                    <div className="space-y-1">
+                                      <h4 className="text-xs font-bold text-green-400 uppercase tracking-wider border-b border-green-400/30 pb-1 mb-2">Passing</h4>
+                                      {[
+                                        { label: 'Vision', val: auction.currentPlayer.vision },
+                                        { label: 'Crossing', val: auction.currentPlayer.crossing },
+                                        { label: 'FK Accuracy', val: auction.currentPlayer.freeKickAccuracy },
+                                        { label: 'Short Pass', val: auction.currentPlayer.shortPassing },
+                                        { label: 'Long Pass', val: auction.currentPlayer.longPassing },
+                                        { label: 'Curve', val: auction.currentPlayer.curve }
+                                      ].map((s, i) => (
+                                        <div key={i} className="flex justify-between items-center">
+                                          <span className="text-xs text-gray-400">{s.label}</span>
+                                          <span className={`text-sm font-bold ${s.val >= 85 ? 'text-green-400' : s.val >= 70 ? 'text-yellow-400' : 'text-red-400'}`}>{s.val || '-'}</span>
+                                        </div>
+                                      ))}
+                                    </div>
+
+                                    {/* Dribbling Stats */}
+                                    <div className="space-y-1">
+                                      <h4 className="text-xs font-bold text-purple-400 uppercase tracking-wider border-b border-purple-400/30 pb-1 mb-2">Dribbling</h4>
+                                      {[
+                                        { label: 'Agility', val: auction.currentPlayer.agility },
+                                        { label: 'Balance', val: auction.currentPlayer.balance },
+                                        { label: 'Reactions', val: auction.currentPlayer.reactions },
+                                        { label: 'Ball Control', val: auction.currentPlayer.ballControl },
+                                        { label: 'Composure', val: auction.currentPlayer.composure }
+                                      ].map((s, i) => (
+                                        <div key={i} className="flex justify-between items-center">
+                                          <span className="text-xs text-gray-400">{s.label}</span>
+                                          <span className={`text-sm font-bold ${s.val >= 85 ? 'text-green-400' : s.val >= 70 ? 'text-yellow-400' : 'text-red-400'}`}>{s.val || '-'}</span>
+                                        </div>
+                                      ))}
+                                    </div>
+
+                                    {/* Defending Stats */}
+                                    <div className="space-y-1">
+                                      <h4 className="text-xs font-bold text-blue-400 uppercase tracking-wider border-b border-blue-400/30 pb-1 mb-2">Defending</h4>
+                                      {[
+                                        { label: 'Interceptions', val: auction.currentPlayer.interceptions },
+                                        { label: 'Heading Acc.', val: auction.currentPlayer.headingAccuracy },
+                                        { label: 'Def. Awareness', val: auction.currentPlayer.defAwareness },
+                                        { label: 'Stand Tackle', val: auction.currentPlayer.standingTackle },
+                                        { label: 'Slide Tackle', val: auction.currentPlayer.slidingTackle }
+                                      ].map((s, i) => (
+                                        <div key={i} className="flex justify-between items-center">
+                                          <span className="text-xs text-gray-400">{s.label}</span>
+                                          <span className={`text-sm font-bold ${s.val >= 85 ? 'text-green-400' : s.val >= 70 ? 'text-yellow-400' : 'text-red-400'}`}>{s.val || '-'}</span>
+                                        </div>
+                                      ))}
+                                    </div>
+
+                                    {/* Physical Stats */}
+                                    <div className="space-y-1">
+                                      <h4 className="text-xs font-bold text-orange-400 uppercase tracking-wider border-b border-orange-400/30 pb-1 mb-2">Physical</h4>
+                                      {[
+                                        { label: 'Jumping', val: auction.currentPlayer.jumping },
+                                        { label: 'Stamina', val: auction.currentPlayer.stamina },
+                                        { label: 'Strength', val: auction.currentPlayer.strength },
+                                        { label: 'Aggression', val: auction.currentPlayer.aggression }
+                                      ].map((s, i) => (
+                                        <div key={i} className="flex justify-between items-center">
+                                          <span className="text-xs text-gray-400">{s.label}</span>
+                                          <span className={`text-sm font-bold ${s.val >= 85 ? 'text-green-400' : s.val >= 70 ? 'text-yellow-400' : 'text-red-400'}`}>{s.val || '-'}</span>
+                                        </div>
+                                      ))}
+                                    </div>
+                                  </div>
+                                </div>
+                              )}
+
+                              {/* PlayStyles Section */}
+                              {(auction.currentPlayer.playStyles?.length > 0 || auction.currentPlayer.playStylesPlus?.length > 0) && (
+                                <div className="mb-6 bg-white/5 rounded-xl p-3 border border-white/10">
+                                  <p className="text-xs font-bold text-purple-400 uppercase tracking-wider mb-2">PlayStyles</p>
+                                  <div className="flex flex-wrap gap-1.5">
+                                    {auction.currentPlayer.playStylesPlus?.map((style, i) => (
+                                      <span key={`plus-${i}`} className="text-xs px-2 py-1 rounded-full font-bold bg-gradient-to-r from-yellow-500 to-amber-600 text-black shadow-lg">
+                                        {style}
+                                      </span>
+                                    ))}
+                                    {auction.currentPlayer.playStyles?.map((style, i) => (
+                                      <span key={`reg-${i}`} className="text-xs px-2 py-1 rounded-full font-medium bg-white/10 text-gray-300 border border-white/20">
+                                        {style}
+                                      </span>
+                                    ))}
+                                  </div>
+                                </div>
+                              )}
+
                               {/* Auction Status & Timer */}
                               <div className="bg-black/40 rounded-xl p-4 md:p-6 border border-white/10 mb-6">
                                 <div className="flex justify-between items-center mb-4">
                                   <div>
                                     <p className="text-gray-400 text-xs uppercase tracking-wider font-bold mb-1">Current Bid</p>
                                     <div className="flex items-baseline gap-2">
-                                      <span className="text-4xl md:text-5xl font-black text-green-400">{auction.currentBid}M</span>
+                                      <span className="text-4xl md:text-5xl font-black text-transparent bg-clip-text bg-gradient-to-r from-green-400 to-emerald-300">{auction.currentBid}M</span>
                                       {auction.highestBidder && (
                                         <span className="text-sm text-gray-400">
                                           by <span className="text-white font-bold">
@@ -1804,19 +2140,29 @@ function App() {
                                   </div>
                                   <div className="text-right">
                                     <p className="text-gray-400 text-xs uppercase tracking-wider font-bold mb-1">Time Left</p>
-                                    <span className={`text-4xl md:text-5xl font-black font-mono ${timer <= 5 ? 'text-red-500 animate-pulse' :
-                                      timer <= 10 ? 'text-orange-500' : 'text-white'
+                                    <div className={`relative inline-block ${timer <= 5 ? 'animate-pulse' : ''}`}>
+                                      <span className={`text-4xl md:text-5xl font-black font-mono ${
+                                        timer <= 5 ? 'text-transparent bg-clip-text bg-gradient-to-r from-red-500 to-orange-500' :
+                                        timer <= 10 ? 'text-transparent bg-clip-text bg-gradient-to-r from-orange-500 to-yellow-500' : 
+                                        'text-white'
                                       }`}>
-                                      {timer}s
-                                    </span>
+                                        {timer}s
+                                      </span>
+                                      {timer <= 5 && (
+                                        <span className="absolute -inset-2 bg-red-500/20 blur-xl rounded-full animate-ping"></span>
+                                      )}
+                                    </div>
                                   </div>
                                 </div>
 
                                 {/* Status Bar */}
-                                <div className="w-full bg-gray-700/50 rounded-full h-2 overflow-hidden">
+                                <div className="w-full bg-gray-700/50 rounded-full h-3 overflow-hidden shadow-inner">
                                   <div
-                                    className={`h-full transition-all duration-1000 ease-linear ${timer <= 5 ? 'bg-red-500' : 'bg-green-500'
-                                      }`}
+                                    className={`h-full transition-all duration-1000 ease-linear rounded-full ${
+                                      timer <= 5 ? 'bg-gradient-to-r from-red-600 to-red-500 shadow-lg shadow-red-500/50' : 
+                                      timer <= 10 ? 'bg-gradient-to-r from-orange-500 to-yellow-500' :
+                                      'bg-gradient-to-r from-green-500 to-emerald-400'
+                                    }`}
                                     style={{ width: `${(timer / 20) * 100}%` }}
                                   ></div>
                                 </div>
@@ -1825,6 +2171,7 @@ function App() {
                               {/* Bidding Controls */}
                               {auction.status === 'bidding' && !(auction.foldedUsers || []).includes(currentUser.id) && (
                                 <div className="mt-auto">
+                                  <p className="text-xs text-gray-500 uppercase tracking-wider font-bold mb-2">Quick Bid</p>
                                   <div className="flex gap-2 mb-3 overflow-x-auto pb-2">
                                     {(() => {
                                       const rating = auction.currentPlayer.rating;
@@ -1835,7 +2182,7 @@ function App() {
                                         <button
                                           key={amount}
                                           onClick={() => setBidAmount(String(auction.currentBid + amount))}
-                                          className="flex-1 min-w-[60px] bg-white/5 hover:bg-white/10 border border-white/10 rounded-lg py-2 text-sm font-bold text-white transition-all hover:scale-105"
+                                          className="flex-1 min-w-[60px] bg-white/5 hover:bg-gradient-to-r hover:from-green-600/20 hover:to-emerald-500/20 border border-white/10 hover:border-green-500/50 rounded-lg py-2.5 text-sm font-bold text-white transition-all hover:scale-105 hover:shadow-lg hover:shadow-green-500/10 active:scale-95"
                                         >
                                           +{amount}M
                                         </button>
@@ -1844,28 +2191,30 @@ function App() {
                                   </div>
 
                                   <div className="flex gap-3">
-                                    <div className="relative flex-1">
-                                      <span className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 font-bold">M</span>
+                                    <div className="relative flex-1 group">
+                                      <span className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 font-bold group-focus-within:text-green-400 transition-colors">M</span>
                                       <input
                                         type="number"
                                         value={bidAmount}
                                         onChange={(e) => setBidAmount(e.target.value)}
-                                        className="w-full bg-black/50 border-2 border-white/10 focus:border-green-500 rounded-xl py-3 md:py-4 pl-10 pr-4 text-white font-bold text-lg transition-colors"
+                                        className="w-full bg-black/50 border-2 border-white/10 focus:border-green-500 rounded-xl py-3 md:py-4 pl-10 pr-4 text-white font-bold text-lg transition-all focus:ring-4 focus:ring-green-500/20 focus:shadow-lg focus:shadow-green-500/10"
                                         placeholder="Amount"
                                       />
                                     </div>
                                     <button
                                       onClick={placeBid}
                                       disabled={!bidAmount}
-                                      className="flex-1 bg-green-600 hover:bg-green-500 disabled:bg-gray-700 text-white font-black text-lg rounded-xl shadow-lg shadow-green-600/20 transition-all transform hover:scale-[1.02] active:scale-95"
+                                      className="flex-1 bg-gradient-to-r from-green-600 to-emerald-500 hover:from-green-500 hover:to-emerald-400 disabled:from-gray-700 disabled:to-gray-600 text-white font-black text-lg rounded-xl shadow-lg shadow-green-600/30 transition-all transform hover:scale-[1.02] active:scale-95 hover:shadow-xl hover:shadow-green-500/40 ripple relative overflow-hidden"
                                     >
-                                      BID
+                                      <span className="relative z-10 flex items-center justify-center gap-2">
+                                        💰 BID
+                                      </span>
                                     </button>
                                     <button
                                       onClick={foldPlayer}
-                                      className="px-6 md:px-8 bg-red-600/20 hover:bg-red-600/30 text-red-500 border border-red-600/30 font-bold rounded-xl transition-colors"
+                                      className="px-6 md:px-8 bg-red-600/20 hover:bg-red-600 text-red-400 hover:text-white border border-red-600/30 hover:border-red-500 font-bold rounded-xl transition-all duration-300 hover:shadow-lg hover:shadow-red-500/30"
                                     >
-                                      FOLD
+                                      ✋ FOLD
                                     </button>
                                     {(isAdmin || isSuperAdmin) && auction.bidders?.length > 0 && (
                                       <button
@@ -1891,20 +2240,34 @@ function App() {
 
                           {/* Sold/Unsold Overlays */}
                           {auction.status === 'sold' && (
-                            <div className="absolute inset-0 z-20 flex items-center justify-center bg-black/60 backdrop-blur-sm animate-fade-in">
-                              <div className="transform rotate-[-12deg] border-8 border-green-500 p-8 rounded-xl bg-green-900/90 shadow-[0_0_100px_rgba(34,197,94,0.5)] animate-stamp">
-                                <h2 className="text-6xl md:text-8xl font-black text-white tracking-tighter uppercase">SOLD</h2>
-                                <p className="text-2xl md:text-3xl font-bold text-green-300 text-center mt-2">
-                                  {auction.currentBid}M
-                                </p>
+                            <div className="absolute inset-0 z-20 flex items-center justify-center bg-black/70 backdrop-blur-md animate-fade-in">
+                              <div className="relative">
+                                <div className="absolute -inset-8 bg-green-500/30 blur-3xl rounded-full animate-pulse"></div>
+                                <div className="relative transform rotate-[-12deg] border-8 border-green-400 p-8 md:p-12 rounded-2xl bg-gradient-to-br from-green-900/95 to-emerald-800/95 shadow-[0_0_100px_rgba(34,197,94,0.6)] animate-stamp">
+                                  <h2 className="text-6xl md:text-8xl font-black text-transparent bg-clip-text bg-gradient-to-r from-green-300 to-emerald-200 tracking-tighter uppercase drop-shadow-lg">SOLD!</h2>
+                                  <p className="text-2xl md:text-4xl font-bold text-green-200 text-center mt-3">
+                                    💰 {auction.currentBid}M
+                                  </p>
+                                  {auction.highestBidderName && (
+                                    <p className="text-lg text-green-300/80 text-center mt-2">
+                                      to <span className="font-bold text-white">{auction.highestBidderName}</span>
+                                    </p>
+                                  )}
+                                </div>
                               </div>
                             </div>
                           )}
 
                           {auction.status === 'unsold' && (
-                            <div className="absolute inset-0 z-20 flex items-center justify-center bg-black/60 backdrop-blur-sm animate-fade-in">
-                              <div className="transform rotate-[12deg] border-8 border-red-500 p-8 rounded-xl bg-red-900/90 shadow-[0_0_100px_rgba(239,68,68,0.5)] animate-stamp">
-                                <h2 className="text-6xl md:text-8xl font-black text-white tracking-tighter uppercase">UNSOLD</h2>
+                            <div className="absolute inset-0 z-20 flex items-center justify-center bg-black/70 backdrop-blur-md animate-fade-in">
+                              <div className="relative">
+                                <div className="absolute -inset-8 bg-red-500/30 blur-3xl rounded-full animate-pulse"></div>
+                                <div className="relative transform rotate-[12deg] border-8 border-red-400 p-8 md:p-12 rounded-2xl bg-gradient-to-br from-red-900/95 to-rose-800/95 shadow-[0_0_100px_rgba(239,68,68,0.6)] animate-stamp">
+                                  <h2 className="text-6xl md:text-8xl font-black text-transparent bg-clip-text bg-gradient-to-r from-red-300 to-rose-200 tracking-tighter uppercase drop-shadow-lg">UNSOLD</h2>
+                                  <p className="text-lg text-red-300/80 text-center mt-3">
+                                    No bids received 😢
+                                  </p>
+                                </div>
                               </div>
                             </div>
                           )}
@@ -1923,10 +2286,10 @@ function App() {
                       )}
 
                       {/* Admin Controls */}
-                      {isAdmin && (
+                      {(isAdmin || isSuperAdmin) && (
                         <div className="glass-panel rounded-xl p-4 md:p-6 border border-white/10">
                           <h3 className="text-lg font-bold text-white mb-4 flex items-center gap-2">
-                            <span>⚡</span> Admin Controls
+                            <span>⚡</span> {isSuperAdmin ? 'Super Admin Controls' : 'Admin Controls'}
                           </h3>
                           <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
                             <button
@@ -1950,12 +2313,14 @@ function App() {
                             >
                               {auction?.isPaused ? 'Resume' : 'Pause'}
                             </button>
-                            <button
-                              onClick={() => setShowAdminPanel(true)}
-                              className="bg-red-600 hover:bg-red-500 text-white font-bold py-3 rounded-lg shadow-lg transition-all"
-                            >
-                              Super Admin
-                            </button>
+                            {isSuperAdmin && (
+                              <button
+                                onClick={() => setShowAdminPanel(true)}
+                                className="bg-red-600 hover:bg-red-500 text-white font-bold py-3 rounded-lg shadow-lg transition-all animate-pulse"
+                              >
+                                🛠️ Panel
+                              </button>
+                            )}
                           </div>
                         </div>
                       )}
@@ -1983,13 +2348,16 @@ function App() {
                             <div className="space-y-2 max-h-64 overflow-y-auto pr-1 custom-scrollbar">
                               {currentUser?.team?.map((player, index) => (
                                 <div key={index} className="bg-white/5 p-2 rounded-lg text-sm flex items-center gap-2 hover:bg-white/10 transition-colors">
-                                  <div className="w-8 h-8 rounded-full bg-gray-700 overflow-hidden">
+                                  <div className="w-8 h-8 rounded-full bg-gray-700 overflow-hidden flex-shrink-0">
                                     <img src={player.imageUrl} alt="" className="w-full h-full object-cover" />
                                   </div>
-                                  <div>
-                                    <p className="font-bold text-white text-xs">{player.name}</p>
+                                  <div className="flex-1 min-w-0">
+                                    <p className="font-bold text-white text-xs truncate">{player.name}</p>
                                     <p className="text-gray-400 text-[10px]">{player.position} • {player.rating}</p>
                                   </div>
+                                  {player.soldPrice && (
+                                    <span className="text-green-400 text-xs font-bold flex-shrink-0">💰{player.soldPrice}M</span>
+                                  )}
                                 </div>
                               ))}
                             </div>
@@ -2335,34 +2703,111 @@ function App() {
         {
           showAdminPanel && isSuperAdmin && (
             <div className="fixed inset-0 bg-black/90 backdrop-blur-md flex items-center justify-center p-4 z-50 animate-fade-in">
-              <div className="glass-panel rounded-2xl max-w-2xl w-full border-2 border-red-500/50 shadow-2xl shadow-red-900/20">
-                <div className="flex justify-between items-center p-6 border-b border-white/10 bg-red-500/10">
+              <div className="glass-panel rounded-2xl max-w-2xl w-full border-2 border-red-500/50 shadow-2xl shadow-red-900/20 max-h-[90vh] overflow-y-auto">
+                <div className="flex justify-between items-center p-6 border-b border-white/10 bg-red-500/10 sticky top-0 backdrop-blur-md">
                   <h2 className="text-2xl font-bold text-red-400 flex items-center gap-2">
-                    <span>⚠️</span> Super Admin
+                    <span>⚠️</span> Super Admin Panel
                   </h2>
-                  <button onClick={() => setShowAdminPanel(false)} className="text-gray-400 hover:text-white">✕</button>
+                  <button onClick={() => setShowAdminPanel(false)} className="text-gray-400 hover:text-white text-2xl">✕</button>
                 </div>
-                <div className="p-6 space-y-4">
-                  <div className="bg-red-900/20 border border-red-500/20 p-4 rounded-xl">
-                    <p className="text-red-200 text-sm font-bold">DANGER ZONE: These actions cannot be undone.</p>
-                  </div>
-
-                  <button
-                    onClick={deleteAllRooms}
-                    className="w-full bg-red-600 hover:bg-red-500 text-white font-bold py-4 rounded-xl shadow-lg transition-all flex items-center justify-center gap-2"
-                  >
-                    <span>🗑️</span> DELETE ALL ROOMS & RESET DATA
-                  </button>
-
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className="bg-white/5 p-4 rounded-xl text-center">
+                <div className="p-6 space-y-6">
+                  {/* Stats Overview */}
+                  <div className="grid grid-cols-3 gap-4">
+                    <div className="bg-white/5 p-4 rounded-xl text-center border border-white/10">
                       <p className="text-gray-400 text-xs uppercase">Total Rooms</p>
                       <p className="text-2xl font-bold text-white">{auctionRooms.length}</p>
                     </div>
-                    <div className="bg-white/5 p-4 rounded-xl text-center">
-                      <p className="text-gray-400 text-xs uppercase">Total Users</p>
+                    <div className="bg-white/5 p-4 rounded-xl text-center border border-white/10">
+                      <p className="text-gray-400 text-xs uppercase">Users in Room</p>
                       <p className="text-2xl font-bold text-white">{users.length}</p>
                     </div>
+                    <div className="bg-white/5 p-4 rounded-xl text-center border border-white/10">
+                      <p className="text-gray-400 text-xs uppercase">Sold Players</p>
+                      <p className="text-2xl font-bold text-white">{auction?.soldPlayers?.length || 0}</p>
+                    </div>
+                  </div>
+
+                  {/* Room Controls - Only show if in a room */}
+                  {auctionRoomId && (
+                    <div className="space-y-4">
+                      <h3 className="text-lg font-bold text-yellow-400 border-b border-white/10 pb-2">🎮 Room Controls</h3>
+                      
+                      <div className="grid grid-cols-2 gap-3">
+                        <button
+                          onClick={async () => {
+                            if (window.confirm('Force end current auction?')) {
+                              try {
+                                await endAuction();
+                                showSuccess('Auction force ended');
+                              } catch (e) {
+                                showError('Failed to end auction');
+                              }
+                            }
+                          }}
+                          className="bg-orange-600 hover:bg-orange-500 text-white font-bold py-3 rounded-xl transition-all flex items-center justify-center gap-2"
+                        >
+                          <span>⏹️</span> Force End Auction
+                        </button>
+                        
+                        <button
+                          onClick={async () => {
+                            if (window.confirm('Skip current player?')) {
+                              try {
+                                const auctionRef = doc(db, 'auctions', auctionRoomId);
+                                await updateDoc(auctionRef, {
+                                  status: 'unsold',
+                                  timer: 0,
+                                  unsoldPlayers: [...(auction.unsoldPlayers || []), auction.currentPlayer?.id || auction.currentPlayer?.name]
+                                });
+                                showSuccess('Player skipped');
+                              } catch (e) {
+                                showError('Failed to skip');
+                              }
+                            }
+                          }}
+                          disabled={!auction?.currentPlayer}
+                          className="bg-yellow-600 hover:bg-yellow-500 disabled:bg-gray-600 text-white font-bold py-3 rounded-xl transition-all flex items-center justify-center gap-2"
+                        >
+                          <span>⏭️</span> Skip Player
+                        </button>
+                        
+                        <button
+                          onClick={() => setShowViewTeams(true)}
+                          className="bg-cyan-600 hover:bg-cyan-500 text-white font-bold py-3 rounded-xl transition-all flex items-center justify-center gap-2"
+                        >
+                          <span>👥</span> View All Teams
+                        </button>
+                        
+                        <button
+                          onClick={() => setShowJoinRequests(true)}
+                          className="bg-purple-600 hover:bg-purple-500 text-white font-bold py-3 rounded-xl transition-all flex items-center justify-center gap-2"
+                        >
+                          <span>🔔</span> Join Requests ({joinRequests.length})
+                        </button>
+                      </div>
+
+                      <button
+                        onClick={clearAllData}
+                        className="w-full bg-red-700 hover:bg-red-600 text-white font-bold py-3 rounded-xl transition-all flex items-center justify-center gap-2"
+                      >
+                        <span>🔄</span> Reset Room Data (Keep Users)
+                      </button>
+                    </div>
+                  )}
+
+                  {/* Danger Zone */}
+                  <div className="space-y-4">
+                    <h3 className="text-lg font-bold text-red-400 border-b border-red-500/30 pb-2">⚠️ Danger Zone</h3>
+                    <div className="bg-red-900/20 border border-red-500/20 p-4 rounded-xl">
+                      <p className="text-red-200 text-sm font-bold mb-3">These actions cannot be undone!</p>
+                    </div>
+                    
+                    <button
+                      onClick={deleteAllRooms}
+                      className="w-full bg-red-600 hover:bg-red-500 text-white font-bold py-4 rounded-xl shadow-lg transition-all flex items-center justify-center gap-2"
+                    >
+                      <span>🗑️</span> DELETE ALL ROOMS & RESET EVERYTHING
+                    </button>
                   </div>
                 </div>
               </div>
@@ -2466,12 +2911,17 @@ function App() {
                     {participant.team && participant.team.length > 0 ? (
                       <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2 mt-3">
                         {participant.team.map((player, idx) => (
-                          <div key={idx} className="bg-black/30 rounded-lg p-2 border border-white/5">
+                          <div key={idx} className="bg-black/30 rounded-lg p-2 border border-white/5 hover:border-white/20 transition-all">
                             <p className="text-white font-semibold text-sm truncate">{player.name}</p>
                             <div className="flex justify-between text-xs mt-1">
                               <span className="text-yellow-400">{player.rating}</span>
                               <span className="text-gray-400">{player.position}</span>
                             </div>
+                            {player.soldPrice && (
+                              <div className="mt-1 pt-1 border-t border-white/10">
+                                <span className="text-green-400 text-xs font-bold">💰 {player.soldPrice}M</span>
+                              </div>
+                            )}
                           </div>
                         ))}
                       </div>

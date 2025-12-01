@@ -419,6 +419,24 @@ function App() {
     setTimeout(() => setSuccess(''), 3000);
   };
 
+  // Refresh users data for View Teams - fetches fresh data from Firestore
+  const refreshUsersAndShowTeams = async () => {
+    try {
+      if (!auctionRoomId) return;
+      const usersQuery = query(collection(db, 'users'), where('auctionRoomId', '==', auctionRoomId));
+      const snapshot = await getDocs(usersQuery);
+      const usersData = [];
+      snapshot.forEach((doc) => {
+        usersData.push({ id: doc.id, ...doc.data() });
+      });
+      setUsers(usersData);
+      setShowViewTeams(true);
+    } catch (error) {
+      console.error('Error refreshing users:', error);
+      setShowViewTeams(true); // Still show modal even if refresh fails
+    }
+  };
+
   const getPhaseDescription = (phase) => {
     switch (phase) {
       case 'elite': return '👑 Elite Phase (91+ Rated)';
@@ -899,7 +917,7 @@ function App() {
         return;
       }
 
-      if (auction.foldedUsers && auction.foldedUsers.includes(user.uid)) {
+      if (auction.foldedUsers && auction.foldedUsers.includes(currentUser.id)) {
         showError('You have already folded on this player');
         return;
       }
@@ -1201,25 +1219,41 @@ function App() {
       }
 
       const roomData = roomSnap.data();
+      
+      // Use persistent user ID (currentUser.id) instead of anonymous auth uid
+      const persistentUserId = currentUser?.id || user.uid;
 
-      // Check if user already has state in this room
-      const userRoomStateRef = doc(db, 'users', user.uid, 'roomStates', roomId);
+      // First, check if user already has data in their main user document for this room
+      const userDocRef = doc(db, 'users', persistentUserId);
+      const userDocSnap = await getDoc(userDocRef);
+      const existingUserData = userDocSnap.exists() ? userDocSnap.data() : null;
+      
+      // Check if user already has state in this room's subcollection
+      const userRoomStateRef = doc(db, 'users', persistentUserId, 'roomStates', roomId);
       const userRoomStateSnap = await getDoc(userRoomStateRef);
 
       let userBudget = roomData.initialBudget || 1000;
       let userTeam = [];
       let userRole = 'manager';
+      
+      // Check if this user was previously in this room (has team data)
+      const wasInThisRoom = existingUserData?.auctionRoomId === roomId || 
+                            userRoomStateSnap.exists() ||
+                            (existingUserData?.team && existingUserData.team.length > 0);
 
       // Check if user is the room creator (host) - they are admin
-      const isRoomCreator = roomData.createdBy === user.uid;
+      const isRoomCreator = roomData.createdBy === persistentUserId || 
+                            roomData.createdBy === user.uid ||
+                            existingUserData?.role === 'admin';
       
       // Super admin can join any room directly
       // Room creator (host) is automatically admin
-      // Others need approval if they don't have existing state
-      if (!isSuperAdmin && !isRoomCreator && !userRoomStateSnap.exists()) {
+      // Users who were previously in this room can rejoin
+      // Others need approval
+      if (!isSuperAdmin && !isRoomCreator && !wasInThisRoom && !userRoomStateSnap.exists()) {
         // Send join request instead of joining directly
         const existingRequests = roomData.joinRequests || [];
-        const alreadyRequested = existingRequests.some(r => r.id === user.uid);
+        const alreadyRequested = existingRequests.some(r => r.id === persistentUserId || r.id === user.uid);
         
         if (alreadyRequested) {
           showError('Join request already sent. Please wait for approval.');
@@ -1231,7 +1265,7 @@ function App() {
         // Add join request
         await updateDoc(roomRef, {
           joinRequests: [...existingRequests, {
-            id: user.uid,
+            id: persistentUserId,
             name: currentUser?.name || userName,
             timestamp: Date.now(),
             customBudget: roomData.initialBudget || 1000
@@ -1244,11 +1278,22 @@ function App() {
         return;
       }
 
+      // Priority for restoring data:
+      // 1. roomStates subcollection (most reliable for room-specific data)
+      // 2. Main user document (fallback)
+      // 3. Default values
       if (userRoomStateSnap.exists()) {
         const state = userRoomStateSnap.data();
-        userBudget = state.budget;
+        userBudget = state.budget ?? userBudget;
         userTeam = state.team || [];
         userRole = state.role || 'manager';
+        console.log('Restored from roomStates:', { userBudget, teamSize: userTeam.length, userRole });
+      } else if (existingUserData && existingUserData.auctionRoomId === roomId) {
+        // User was in this exact room before, restore their data
+        userBudget = existingUserData.budget ?? userBudget;
+        userTeam = existingUserData.team || [];
+        userRole = existingUserData.role || 'manager';
+        console.log('Restored from user document:', { userBudget, teamSize: userTeam.length, userRole });
       }
       
       // Set role based on creator status or super admin
@@ -1258,34 +1303,35 @@ function App() {
         userRole = 'superadmin';
       }
 
-      // Update main user doc
-      await setDoc(doc(db, 'users', user.uid), {
+      // Update main user doc with persistent ID
+      await setDoc(doc(db, 'users', persistentUserId), {
         name: currentUser?.name || userName,
         budget: userBudget,
         team: userTeam,
         auctionRoomId: roomId,
         isOnline: true,
         lastActive: serverTimestamp(),
-        role: userRole
+        role: userRole,
+        userIdentifier: currentUser?.userIdentifier || null
       }, { merge: true });
 
-      // Initialize room state if not exists
-      if (!userRoomStateSnap.exists()) {
-        await setDoc(userRoomStateRef, {
-          budget: userBudget,
-          team: userTeam,
-          role: userRole,
-          joinedAt: serverTimestamp()
-        });
-      }
+      // Save/update room state for persistence
+      await setDoc(userRoomStateRef, {
+        budget: userBudget,
+        team: userTeam,
+        role: userRole,
+        joinedAt: userRoomStateSnap.exists() ? userRoomStateSnap.data().joinedAt : serverTimestamp(),
+        lastActive: serverTimestamp()
+      }, { merge: true });
 
       setAuctionRoomId(roomId);
       setCurrentUser({
-        id: user.uid,
+        id: persistentUserId,
         name: currentUser?.name || userName,
         budget: userBudget,
         team: userTeam,
-        role: userRole
+        role: userRole,
+        userIdentifier: currentUser?.userIdentifier
       });
 
       setIsAdmin(userRole === 'admin');
@@ -1430,11 +1476,27 @@ function App() {
 
   const logout = async () => {
     try {
-      // Clear user's auctionRoomId in Firestore before signing out
-      if (user) {
-        await updateDoc(doc(db, 'users', user.uid), {
+      // Use persistent user ID
+      const persistentUserId = currentUser?.id || user?.uid;
+      
+      // Save user state before logging out (preserve team and budget)
+      if (persistentUserId) {
+        // Save to roomStates if user was in a room
+        if (auctionRoomId) {
+          const roomStateRef = doc(db, 'users', persistentUserId, 'roomStates', auctionRoomId);
+          await setDoc(roomStateRef, {
+            budget: currentUser?.budget,
+            team: currentUser?.team || [],
+            role: currentUser?.role,
+            lastActive: serverTimestamp()
+          }, { merge: true });
+        }
+        
+        // Update main user doc - keep team/budget data but mark as offline
+        await updateDoc(doc(db, 'users', persistentUserId), {
           auctionRoomId: null,
-          isOnline: false
+          isOnline: false,
+          lastActive: serverTimestamp()
         });
       }
       
@@ -1456,12 +1518,26 @@ function App() {
   const leaveAuctionRoom = async () => {
     try {
       isLeavingRoomRef.current = true; // Prevent auto-rejoin
+      
+      // Use persistent user ID
+      const persistentUserId = currentUser?.id || user?.uid;
 
-      // Update user doc to remove auctionRoomId
-      if (user) {
-        await updateDoc(doc(db, 'users', user.uid), {
-          auctionRoomId: null
+      // Update user doc to remove auctionRoomId but KEEP team and budget data
+      if (persistentUserId) {
+        await updateDoc(doc(db, 'users', persistentUserId), {
+          auctionRoomId: null,
+          isOnline: false
         });
+        
+        // Also update roomStates to preserve data for when they return
+        if (auctionRoomId) {
+          const roomStateRef = doc(db, 'users', persistentUserId, 'roomStates', auctionRoomId);
+          await setDoc(roomStateRef, {
+            budget: currentUser?.budget,
+            team: currentUser?.team || [],
+            lastActive: serverTimestamp()
+          }, { merge: true });
+        }
       }
 
       setAuctionRoomId(null);
@@ -1836,7 +1912,7 @@ function App() {
                               <span>🔔</span> Requests ({joinRequests.length})
                             </button>
                             <button
-                              onClick={() => setShowViewTeams(true)}
+                              onClick={refreshUsersAndShowTeams}
                               className="flex items-center gap-2 px-4 py-2 rounded-lg bg-cyan-600 hover:bg-cyan-500 text-white text-xs font-bold shadow-lg shadow-cyan-600/20 transition-all whitespace-nowrap"
                             >
                               <span>👥</span> View Teams
@@ -2772,7 +2848,7 @@ function App() {
                         </button>
                         
                         <button
-                          onClick={() => setShowViewTeams(true)}
+                          onClick={refreshUsersAndShowTeams}
                           className="bg-cyan-600 hover:bg-cyan-500 text-white font-bold py-3 rounded-xl transition-all flex items-center justify-center gap-2"
                         >
                           <span>👥</span> View All Teams
@@ -2880,7 +2956,25 @@ function App() {
           <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-50 p-4">
             <div className="bg-gray-900 rounded-2xl p-6 max-w-4xl w-full max-h-[80vh] overflow-auto border border-white/10 shadow-2xl">
               <div className="flex justify-between items-center mb-6 border-b border-white/10 pb-4">
-                <h2 className="text-2xl font-black text-white">👥 All Participant Teams</h2>
+                <div className="flex items-center gap-3">
+                  <h2 className="text-2xl font-black text-white">👥 All Participant Teams</h2>
+                  <button
+                    onClick={async () => {
+                      if (!auctionRoomId) return;
+                      const usersQuery = query(collection(db, 'users'), where('auctionRoomId', '==', auctionRoomId));
+                      const snapshot = await getDocs(usersQuery);
+                      const usersData = [];
+                      snapshot.forEach((doc) => {
+                        usersData.push({ id: doc.id, ...doc.data() });
+                      });
+                      setUsers(usersData);
+                    }}
+                    className="text-cyan-400 hover:text-cyan-300 text-sm px-2 py-1 rounded bg-cyan-500/10 hover:bg-cyan-500/20 transition-all"
+                    title="Refresh teams"
+                  >
+                    🔄 Refresh
+                  </button>
+                </div>
                 <button
                   onClick={() => setShowViewTeams(false)}
                   className="text-gray-400 hover:text-white text-2xl transition-colors"

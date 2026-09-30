@@ -26,17 +26,16 @@ First, you need to create a Firebase project:
 
 ### 2. Configure Firebase
 
-Replace the Firebase configuration in `App.jsx` (around line 25):
+Copy `.env.example` to `.env.local` and fill in your Firebase web app configuration. The app reads these values from Vite environment variables; do not commit `.env.local`. Firebase web API keys are client-visible, so restrict them in Firebase/Google Cloud and configure authorized domains and security rules.
 
-```javascript
-const firebaseConfig = {
-  apiKey: "your-api-key",
-  authDomain: "your-project.firebaseapp.com", 
-  projectId: "your-project-id",
-  storageBucket: "your-project.appspot.com",
-  messagingSenderId: "123456789",
-  appId: "your-app-id"
-};
+```env
+VITE_FIREBASE_API_KEY=your_firebase_web_api_key
+VITE_FIREBASE_AUTH_DOMAIN=your-project.firebaseapp.com
+VITE_FIREBASE_DATABASE_URL=https://your-project-default-rtdb.firebaseio.com
+VITE_FIREBASE_PROJECT_ID=your-project
+VITE_FIREBASE_STORAGE_BUCKET=your-project.appspot.com
+VITE_FIREBASE_MESSAGING_SENDER_ID=your_sender_id
+VITE_FIREBASE_APP_ID=your_app_id
 ```
 
 ### 3. Install Dependencies

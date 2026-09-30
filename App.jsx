@@ -27,16 +27,17 @@ import {
 } from 'firebase/auth';
 import html2canvas from 'html2canvas';
 
-// Firebase configuration - Your actual Firebase project config
+// Firebase configuration comes from Vite environment variables. Configure key restrictions
+// and authorized domains in the Firebase console; client-side values are visible to users.
 const firebaseConfig = {
-  apiKey: "AIzaSyDccc5koLXNLXxUAtt-CyEodbWomFSbbmc",
-  authDomain: "fifa-auction-app.firebaseapp.com",
-  databaseURL: "https://fifa-auction-app-default-rtdb.firebaseio.com",
-  projectId: "fifa-auction-app",
-  storageBucket: "fifa-auction-app.firebasestorage.app",
-  messagingSenderId: "364660306221",
-  appId: "1:364660306221:web:fed415bd6807d2dd7c63a4",
-  measurementId: "G-YG6VQ0C7EJ"
+  apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
+  authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN,
+  databaseURL: import.meta.env.VITE_FIREBASE_DATABASE_URL,
+  projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID,
+  storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET,
+  messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID,
+  appId: import.meta.env.VITE_FIREBASE_APP_ID,
+  measurementId: import.meta.env.VITE_FIREBASE_MEASUREMENT_ID
 };
 
 // Initialize Firebase
